@@ -32,7 +32,7 @@ object FrontPage {
   // We will display just the hostname of the URL
   // this returns close to what we want but not exactly...
   def getHostName(url: String) : String = {
-    if(url.size == 0) ""
+    if(url.isEmpty) ""
     else {
       Try(new URL(url)) match {
         case Success(u) =>
@@ -44,11 +44,11 @@ object FrontPage {
   }
 
   // Print a simple list of the Hacker News front page
-  // By default it will start at the first item and show 30
+  // By default it will start at the first item and show N items
   // But by passing the page number 0-N it will show that page
   // Only a certain number of top items are returned by the API so you will run out of
   // pages eventually
-  // The Hacker News Homepage has 30 items but for politeness we'll just do 5 requests at a time
+  // The Hacker News Homepage has 30 items but for politeness we'll just do a smaller number of requests at a time
 
   def main(args : Array[String]) : Unit = {
 
@@ -63,7 +63,7 @@ object FrontPage {
 
     val futureItems = getTopItems().flatMap {
       case Right(items) =>
-        val pageOfItems = items.drop(startPage * numItemsPerPage).take(numItemsPerPage)
+        val pageOfItems = items.slice(startPage * numItemsPerPage, startPage * numItemsPerPage + numItemsPerPage)
         getItems(pageOfItems)
 
       case Left(err) =>
@@ -71,8 +71,7 @@ object FrontPage {
     }
 
     val printItems = futureItems.map {
-      items =>
-        items.zipWithIndex.foreach {
+      _.zipWithIndex.foreach {
           case (Right(item), n) =>
             println(s"${itemNum(n)}. ${item.title} ${getHostName(item.url)}")
             println(s"  ${item.score} points by ${item.by} at ${timestampToPretty(item.time)} ${item.descendants} comments\n")
