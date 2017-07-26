@@ -62,15 +62,11 @@ object HNFetch {
   // constuct the query to get an item
   def getUser(userID: HNUserID) : Future[Either[String, HNUser]] = {
     val url = getUserURL(userID)
-
-    println(s"GET $url")
     hnRequest[HNUser](url)
   }
 
   def getItem(itemId: HNItemID) : Future[Either[String, HNItem]] = {
     val url = getItemURL(itemId)
-
-    println(s"GET $url")
     hnRequest[HNItem](url)
   }
 
@@ -82,29 +78,31 @@ object HNFetch {
 
   private def hnRequest[T](url: String)(implicit r: Reader[T]) : Future[Either[String, T]] = {
 
+    println(s"GET $url")
+
     Future {CustomHttp(url).asString}.map {
       response =>
         if(response.code == 200) {
           Try(read[T](response.body)) match {
             case Success(good) if good == null =>
-              println("got empty")
+              println("ERROR empty response")
               Left("Not found")
             case Success(good) =>
-              println("got successfully")
+              println(s"GOT $url")
               Right(good)
             case Failure(e) =>
-              println(s"got parse error ${response.body}")
+              println(s"ERROR could not parse ${response.body}")
               Left("Failed to read " + e.getMessage())
           }
         }
         else {
-          println("got no response")
+          println(s"ERROR response code ${response.code}")
           Left(s"Failed to retrieve $url code: ${response.code}")
         }
     }
       .recover {
         case e : Exception =>
-          println(s"got exception ${e.getMessage} due to ${e.getCause}")
+          println(s"ERROR exception ${e.getMessage} due to ${e.getCause}")
           Left("Failed to retrieve $url becasue ${e.getMessage}")
       }
   }

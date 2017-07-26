@@ -32,11 +32,11 @@ object FrontPage {
   // We will display just the hostname of the URL
   // this returns close to what we want but not exactly...
   def getHostName(url: String) : String = {
-    if(url.size == 0) url
+    if(url.size == 0) ""
     else {
       Try(new URL(url)) match {
         case Success(u) =>
-          u.getHost
+          "(" + u.getHost + ")"
         case Failure(e) =>
           ""
       }
@@ -74,7 +74,7 @@ object FrontPage {
       items =>
         items.zipWithIndex.foreach {
           case (Right(item), n) =>
-            println(s"${itemNum(n)}. ${item.title} (${getHostName(item.url)})")
+            println(s"${itemNum(n)}. ${item.title} ${getHostName(item.url)}")
             println(s"  ${item.score} points by ${item.by} at ${timestampToPretty(item.time)} ${item.descendants} comments\n")
           case (Left(err), n) => println(s"${itemNum(n)}. No item (err $err)")
         }
