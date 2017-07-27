@@ -7,11 +7,11 @@ import scala.util.{Failure, Success, Try}
 import scalaj.http.{BaseHttp, HttpConstants}
 
 
-// Get Hacker News items with Fetch
+// Get Hacker News items
 
 object HNFetch {
 
-  object CustomHttp extends BaseHttp(
+  object customHttp extends BaseHttp(
     proxyConfig = None,
     options = HttpConstants.defaultOptions,
     charset = HttpConstants.utf8,
@@ -21,11 +21,6 @@ object HNFetch {
   )
 
   val baseHNURL = "https://hacker-news.firebaseio.com/v0/"
-
-  // constuct url for api queries
-  private def getUserURL(userId: HNUserID) = s"${baseHNURL}user/$userId.json"
-  private def getItemURL(itemId: HNItemID) = s"${baseHNURL}item/$itemId.json"
-  private val getTopItemsURL = s"${baseHNURL}topstories.json"
 
   type HNUserID = String
   type HNItemID = Int
@@ -38,8 +33,13 @@ object HNFetch {
                     //delay : Int, // Delay in minutes between a comment's creation and its visibility to other users.
                     created : Int, // Creation date of the user, in Unix Time.
                     karma : Int, // The user's karma.
-                    about : String = "", // The user's optional self-description. HTML.
+                    about : String, // The user's optional self-description. HTML.
                     submitted : List[HNItemID] ) // List of the user's stories, polls and comments.
+
+  // constuct url for api queries
+  def getUserURL(userId: HNUserID) = s"${baseHNURL}user/$userId.json"
+  def getItemURL(itemId: HNItemID) = s"${baseHNURL}item/$itemId.json"
+  val getTopItemsURL = s"${baseHNURL}topstories.json"
 
   case class HNItem(
                      id : HNItemID, // The item's unique id.
@@ -62,11 +62,15 @@ object HNFetch {
   // constuct the query to get an item
   def getUser(userID: HNUserID) : Future[Either[String, HNUser]] = {
     val url = getUserURL(userID)
+
+    //println(s"GET $url")
     hnRequest[HNUser](url)
   }
 
   def getItem(itemId: HNItemID) : Future[Either[String, HNItem]] = {
     val url = getItemURL(itemId)
+
+    //println(s"GET $url")
     hnRequest[HNItem](url)
   }
 
@@ -76,33 +80,31 @@ object HNFetch {
     hnRequest[HNItemIDList](getTopItemsURL)
   }
 
-  private def hnRequest[T](url: String)(implicit r: Reader[T]) : Future[Either[String, T]] = {
+  def hnRequest[T](url: String)(implicit r: Reader[T]) : Future[Either[String, T]] = {
 
-    //println(s"GET $url")
-
-    Future {CustomHttp(url).asString}.map {
+    Future {customHttp(url).asString}.map {
       response =>
         if(response.code == 200) {
           Try(read[T](response.body)) match {
             case Success(good) if good == null =>
-              println("ERROR empty response")
+              println("got empty")
               Left("Not found")
             case Success(good) =>
-              //println(s"GOT $url")
+              //println("got successfully")
               Right(good)
             case Failure(e) =>
-              println(s"ERROR could not parse ${response.body}")
+              println(s"got parse error ${response.body}")
               Left("Failed to read " + e.getMessage())
           }
         }
         else {
-          println(s"ERROR response code ${response.code}")
+          println("got no response")
           Left(s"Failed to retrieve $url code: ${response.code}")
         }
     }
       .recover {
         case e : Exception =>
-          println(s"ERROR exception ${e.getMessage} due to ${e.getCause}")
+          println(s"got exception ${e.getMessage} due to ${e.getCause}")
           Left("Failed to retrieve $url becasue ${e.getMessage}")
       }
   }
