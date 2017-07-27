@@ -78,7 +78,7 @@ object HNFetch {
 
   private def hnRequest[T](url: String)(implicit r: Reader[T]) : Future[Either[String, T]] = {
 
-    println(s"GET $url")
+    //println(s"GET $url")
 
     Future {CustomHttp(url).asString}.map {
       response =>
@@ -88,7 +88,7 @@ object HNFetch {
               println("ERROR empty response")
               Left("Not found")
             case Success(good) =>
-              println(s"GOT $url")
+              //println(s"GOT $url")
               Right(good)
             case Failure(e) =>
               println(s"ERROR could not parse ${response.body}")

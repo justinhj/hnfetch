@@ -50,16 +50,10 @@ object FrontPage {
   // pages eventually
   // The Hacker News Homepage has 30 items but for politeness we'll just do a smaller number of requests at a time
 
-  def main(args : Array[String]) : Unit = {
-
-    val numItemsPerPage = 5
-
-    val startPage = Try(args(0).toInt).getOrElse(0)
+  def printPage(startPage: Int, numItemsPerPage: Int) : Unit = {
 
     // helper to show the article rank
     def itemNum(n: Int) = (startPage * numItemsPerPage) + n + 1
-
-    println(s"start page $startPage")
 
     val futureItems = getTopItems().flatMap {
       case Right(items) =>
@@ -72,17 +66,25 @@ object FrontPage {
 
     val printItems = futureItems.map {
       _.zipWithIndex.foreach {
-          case (Right(item), n) =>
-            println(s"${itemNum(n)}. ${item.title} ${getHostName(item.url)}")
-            println(s"  ${item.score} points by ${item.by} at ${timestampToPretty(item.time)} ${item.descendants} comments\n")
-          case (Left(err), n) => println(s"${itemNum(n)}. No item (err $err)")
-        }
+        case (Right(item), n) =>
+          println(s"${itemNum(n)}. ${item.title} ${getHostName(item.url)}")
+          println(s"  ${item.score} points by ${item.by} at ${timestampToPretty(item.time)} ${item.descendants} comments\n")
+        case (Left(err), n) => println(s"${itemNum(n)}. No item (err $err)")
+      }
     }
 
     Await.ready(printItems, 10 seconds)
-
   }
 
 
+  def main(args : Array[String]) : Unit = {
+
+    val numItemsPerPage = 10
+
+    val startPage = Try(args(0).toInt).getOrElse(0)
+
+    printPage(startPage, numItemsPerPage)
+
+  }
 
 }
