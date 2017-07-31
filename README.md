@@ -2,11 +2,14 @@
 
 ## Using Scala to interact with the Hacker News API
 
-This is a simple program written to supplement a blog post on using Scala to access Hacker News users and stories.
+This is Scala project written to supplement a blog post series on using Scala to access Hacker News users and stories.
 
 [Hacker News API Part 1](http://justinhj.github.io/2017/07/26/hacker-news-api-1.html)
+[Hacker News API Part 2](http://justinhj.github.io/2017/07/30/hacker-news-api-2.html)
 
 By running the main program you can view a text version of the Hacker News front page in your terminal (or IDE output).
+
+## Part 1 instructions
 
 Usage `sbt run 0` shows the first 10 items
 
