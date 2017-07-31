@@ -5,6 +5,8 @@ version := "1.0"
 scalaVersion := "2.12.2"
 
 libraryDependencies ++= Seq(
+  "org.typelevel" %% "cats" % "0.9.0",
+  "com.47deg" %% "fetch" % "0.6.2",
   "org.scalaj" %% "scalaj-http" % "2.3.0",
   "com.lihaoyi" %% "upickle" % "0.4.4",
   "org.typelevel" %% "cats" % "0.9.0",
