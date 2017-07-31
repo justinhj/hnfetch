@@ -39,9 +39,7 @@ object FrontPage {
         case (Left(err), n) => println(s"${itemNum(n)}. No item (err $err)")
       }
     }
-
   }
-
 
   def main(args : Array[String]) : Unit = {
 

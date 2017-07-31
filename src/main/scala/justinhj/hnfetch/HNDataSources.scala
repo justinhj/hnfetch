@@ -55,8 +55,10 @@ object HNDataSources {
     override def fetchOne(id: HNItemID): Query[Option[HNItem]] = {
       Query.async({
         (ok, fail) =>
+          println(s"GET Item $id")
           HNFetch.getItem(id).map {
             case Right(item) =>
+              println(s"GOT Item $id")
               ok(Some(item))
             case Left(err) =>
               ok(None)
