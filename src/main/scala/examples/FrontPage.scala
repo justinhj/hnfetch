@@ -6,7 +6,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
-import scala.util.Try
+import scala.util.{Success, Failure, Try}
 
 object FrontPage {
 
@@ -41,6 +41,14 @@ object FrontPage {
     }
   }
 
+  def blockingPrintPage(startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList) : Unit = {
+
+    val f = printPage(startPage, numItemsPerPage, hNItemIDList)
+
+    Await.ready(f, 15 seconds)
+  }
+
+
   def main(args : Array[String]) : Unit = {
 
     val numItemsPerPage = 10
@@ -49,15 +57,39 @@ object FrontPage {
 
     println("Getting top items")
 
-    val printItems = getTopItems().flatMap {
-      case Right(items) =>
+    val topItemsF = getTopItems()
+
+    Await.result(topItemsF, 10 seconds) match {
+
+      case Right(topItems) =>
         println(s"Got items")
-        printPage(startPage, numItemsPerPage, items)
+
+        def inputLoop() : Unit = {
+          println("Enter page # or q to quit: ")
+
+          io.StdIn.readLine match {
+            case "q" =>
+            case "" =>
+            case s: String =>
+              val page = Try(s.toInt) match {
+                case Success(n) =>
+                  println(s"Printing page $n")
+
+                  blockingPrintPage(n, numItemsPerPage, topItems)
+
+                  inputLoop()
+                case Failure(_) =>
+              }
+            case _ =>
+
+          }
+        }
+
+        inputLoop()
+
       case Left(err) =>
         Future.failed(new Exception(err))
     }
-
-    Await.ready(printItems, 30 seconds)
 
   }
 
