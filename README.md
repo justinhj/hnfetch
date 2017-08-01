@@ -4,17 +4,23 @@
 
 This is Scala project written to supplement a blog post series on using Scala to access Hacker News users and stories.
 
+Using scalaj-http and uPickle
+
 [Hacker News API Part 1](http://justinhj.github.io/2017/07/26/hacker-news-api-1.html)
 
-WIP [Hacker News API Part 2](http://justinhj.github.io/2017/07/30/hacker-news-api-2.html)
+Use Fetch and demonstrate parallel execution and caching
+
+[Hacker News API Part 2](http://justinhj.github.io/2017/07/30/hacker-news-api-2.html)
 
 By running the main program you can view a text version of the Hacker News front page in your terminal (or IDE output).
 
-## Part 1 instructions
+## Instructions
 
-Usage `sbt run 0` shows the first 10 items
+Run sbt and at the command line choose to run [1] (examples.FrontPage) or [2] (examples.FrontPageWithFetch)
 
-`sbt run 1` shows the next 10 items and so on
+An interative prompt is enabled where you can choose from 0-49 pages of hacker news front page items.
+
+In the fetch example you can see that items are only retreived once then cached for the next time.
 
 ## Example output 
 
@@ -51,5 +57,6 @@ Disconnected from the target VM, address: '127.0.0.1:59809', transport: 'socket'
   86 points by necrodome at 8 hours ago 5 comments
 
 ```
+
 
 
