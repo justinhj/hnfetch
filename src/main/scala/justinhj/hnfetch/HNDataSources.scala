@@ -2,9 +2,11 @@ package justinhj.hnfetch
 
 import fetch.{DataSource, ExecutionType, Fetch, Query, Sequential}
 import justinhj.hnfetch.HNFetch.{HNItem, HNItemID, HNUser, HNUserID}
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 object HNDataSources {
 
@@ -20,21 +22,26 @@ object HNDataSources {
   implicit object HNUserSource extends DataSource[HNUserID, HNUser]{
     override def name = "user"
 
-    override def maxBatchSize = batchSize
-    override def batchExecution = executionType
+    override def maxBatchSize : Option[Int] = batchSize
+    override def batchExecution : ExecutionType = executionType
 
     override def fetchOne(id: HNUserID): Query[Option[HNUser]] = {
 
       Query.async({
         (ok, fail) =>
-          HNFetch.getUser(id).map {
-            case Right(user) =>
-              ok(Some(user))
-            case Left(err) =>
-              ok(None)
-          }.recover {
-            case e => fail(e)
-          }
+          HNFetch.getUser(id) onComplete {
+
+            case Success(futSucc) => futSucc match {
+              case Right(item) =>
+                println(s"GOT Item $id")
+                ok(Some(item))
+              case Left(err) =>
+                ok(None)
+            }
+
+            case Failure(e) =>
+              fail(e)
+        }
       }, fetchTimeout)
 
     }
@@ -49,21 +56,25 @@ object HNDataSources {
   implicit object HNItemSource extends DataSource[HNItemID, HNItem]{
     override def name = "item"
 
-    override def maxBatchSize = batchSize
-    override def batchExecution = executionType
+    override def maxBatchSize : Option[Int] = batchSize
+    override def batchExecution : ExecutionType = executionType
 
     override def fetchOne(id: HNItemID): Query[Option[HNItem]] = {
       Query.async({
         (ok, fail) =>
           println(s"GET Item $id")
-          HNFetch.getItem(id).map {
-            case Right(item) =>
-              println(s"GOT Item $id")
-              ok(Some(item))
-            case Left(err) =>
-              ok(None)
-          }.recover {
-            case e => fail(e)
+          HNFetch.getItem(id) onComplete {
+
+            case Success(futSucc) => futSucc match {
+              case Right(item) =>
+                println(s"GOT Item $id")
+                ok(Some(item))
+              case Left(err) =>
+                ok(None)
+            }
+
+            case Failure(e) =>
+              fail(e)
           }
       }, fetchTimeout)
     }
