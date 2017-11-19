@@ -5,6 +5,7 @@ import java.util.concurrent.Executors
 
 import fs2.{Scheduler, Strategy, Stream, Task}
 import fs2.util.Async
+import justinhj.hnfetch.HNFetch
 import justinhj.hnfetch.HNFetch.HNItemIDList
 import scodec.bits.ByteVector
 import spinoco.fs2.kafka
@@ -12,6 +13,8 @@ import spinoco.fs2.kafka.Logger.Level
 import spinoco.fs2.kafka.network.BrokerAddress
 import spinoco.fs2.kafka.{KafkaClient, Logger, partition, topic}
 import spinoco.protocol.kafka.ProtocolVersion
+import upickle.default._
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 // Periodically get Hacker news top items and publish to kafka using FS2 streams
@@ -33,7 +36,7 @@ object KafkaFS2Streams {
 
   val brokers = Set(BrokerAddress("0.0.0.0", 9092))
 
-  def blockingPublishItem(client : Stream[Task, KafkaClient[Task]], item: String) : Long = {
+  def blockingPublishItem(client : Stream[Task, KafkaClient[Task]], item: String) : Seq[Long] = {
     // publish a message
 
     val streamTask: Stream[Task, Long] = client.flatMap {
@@ -53,12 +56,19 @@ object KafkaFS2Streams {
         Stream.eval(pub)
     }
 
-    val result = streamTask.runLog.unsafeRun()
+    streamTask.runLog.unsafeRun()
   }
 
   def main(args : Array[String]) : Unit = {
 
     logger.log(Level.Info, "Starting", null)
+
+    // TODO config
+    // config time between fetches
+    // config kafka host and port
+    // config topic name
+
+    val pauseTime = 5 seconds
 
     val client: Stream[Task, KafkaClient[Task]] = kafka.client(
       ensemble = brokers
@@ -68,8 +78,25 @@ object KafkaFS2Streams {
 
     (1 to 10).foreach{
       item =>
+        Thread.sleep(pauseTime.toMillis)
 
-        blockingPublishItem(client, s"Item $item")
+        logger.log(Level.Info, "Getting top items", null)
+
+        val topItemsF = HNFetch.getTopItems()
+
+        val topItems: Either[String, HNItemIDList] = Await.result(topItemsF, 10 seconds)
+
+        topItems.map{
+          items =>
+            val serializedItems = write(items)
+
+            logger.log(Level.Info, "Writing items", null)
+
+            blockingPublishItem(client, serializedItems)
+
+        }
+
+
 
     }
 
