@@ -3,8 +3,8 @@ package examples
 import java.nio.channels.AsynchronousChannelGroup
 import java.util.concurrent.Executors
 
-import fs2.{Scheduler, Strategy, Stream, Task}
 import fs2.util.Async
+import fs2.{Scheduler, Strategy, Stream, Task, time}
 import justinhj.hnfetch.HNFetch
 import justinhj.hnfetch.HNFetch.HNItemIDList
 import scodec.bits.ByteVector
@@ -14,7 +14,8 @@ import spinoco.fs2.kafka.network.BrokerAddress
 import spinoco.fs2.kafka.{KafkaClient, Logger, partition, topic}
 import spinoco.protocol.kafka.ProtocolVersion
 import upickle.default._
-import scala.concurrent.Await
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 // Periodically get Hacker news top items and publish to kafka using FS2 streams
@@ -34,29 +35,45 @@ object KafkaFS2Streams {
   val topicId = topic("items")
   val part0 = partition(0)
 
+  case class TopItemPayload(time: Long, items: HNItemIDList)
+
   val brokers = Set(BrokerAddress("0.0.0.0", 9092))
 
-  def blockingPublishItem(client : Stream[Task, KafkaClient[Task]], item: String) : Seq[Long] = {
-    // publish a message
+  /**
+    * Given a kafka client Stream publish a single item
+    * @param client Kafka client stream
+    * @param item String item (will be encoded and sent)
+    * @return items offset in the topic or throws an error
+    */
+  def publishItem(client : Stream[Task, KafkaClient[Task]], item: String): Stream[Task, Long] = {
 
-    val streamTask: Stream[Task, Long] = client.flatMap {
-
+    client.flatMap {
       clientTask =>
 
         val timeMillis = System.currentTimeMillis()
 
-        // TODO error handling on encode
-        val message = ByteVector.encodeUtf8(item).getOrElse(ByteVector.empty)
+        ByteVector.encodeUtf8(item) match {
+          case Right(message) =>
+            val pub: Task[Long] = clientTask.publish1(topicId, part0,
+              ByteVector.empty, message,
+              requireQuorum = false,
+              serverAckTimeout = 3 seconds)
 
-        val pub: Task[Long] = clientTask.publish1(topicId, part0,
-          ByteVector.empty, message,
-          requireQuorum = false,
-          serverAckTimeout = 3 seconds)
+            Stream.eval(pub)
 
-        Stream.eval(pub)
+          case Left(err) =>
+            // Not being able to encode the message using utf8 is a fatal error
+            throw err
+        }
     }
+  }
 
-    streamTask.runLog.unsafeRun()
+  def blockingPublishItem(client : Stream[Task, KafkaClient[Task]], item: String) : Seq[Long] = {
+    // publish a message
+
+    val publishTask =publishItem(client, item)
+
+    publishTask.runLog.unsafeRun()
   }
 
   def main(args : Array[String]) : Unit = {
@@ -76,29 +93,42 @@ object KafkaFS2Streams {
       , clientName = "fs2-client"
     )
 
-    (1 to 10).foreach{
-      item =>
-        Thread.sleep(pauseTime.toMillis)
+    // get the top items on Hacker News
 
-        logger.log(Level.Info, "Getting top items", null)
+    val getTopItems = Stream.eval(Task.fromFuture(HNFetch.getTopItems()))
 
-        val topItemsF = HNFetch.getTopItems()
+    // delay a specified period
 
-        val topItems: Either[String, HNItemIDList] = Await.result(topItemsF, 10 seconds)
+    def delay(): Stream[Task, Unit] = {
+      logger.log(Level.Info, s"Delaying $pauseTime", null)
+      time.sleep(pauseTime)
+    }
 
-        topItems.map{
-          items =>
-            val serializedItems = write(items)
+    val s: Stream[Task, Long] = getTopItems.flatMap {
+      (items: Either[String, HNItemIDList]) =>
+
+        items match {
+          case Right(items) =>
+
+            val payload = TopItemPayload(System.currentTimeMillis(), items)
+
+            val serializedItems = write(payload)
 
             logger.log(Level.Info, "Writing items", null)
 
-            blockingPublishItem(client, serializedItems)
+            publishItem(client, serializedItems)
 
+          case Left(err) =>
+            throw new Exception(err)
         }
 
-
-
     }
+
+    val withDelay = (s ++ delay).repeat
+
+    // end of the world
+
+    val result = withDelay.run.unsafeRun()
 
     logger.log(Level.Info, "Done", null)
 
