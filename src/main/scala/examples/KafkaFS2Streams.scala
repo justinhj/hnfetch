@@ -76,6 +76,11 @@ object KafkaFS2Streams {
       , clientName = "fs2-client"
     )
 
+    import cats.effect.IO
+
+    val eff = Stream.eval(IO { println("BEING RUN!!"); 1 + 1 })
+    val er = eff.runLog
+
     (1 to 10).foreach{
       item =>
         Thread.sleep(pauseTime.toMillis)
@@ -95,9 +100,6 @@ object KafkaFS2Streams {
             blockingPublishItem(client, serializedItems)
 
         }
-
-
-
     }
 
     logger.log(Level.Info, "Done", null)

@@ -7,11 +7,9 @@ import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import cats.instances.list._
 import fetch._
 import fetch.implicits._
-import cats.instances.list._
-import cats.syntax.traverse._
+import cats._, cats.data._, cats.implicits._
 import fetch.syntax._
 
 object FrontPageWithFetch {
