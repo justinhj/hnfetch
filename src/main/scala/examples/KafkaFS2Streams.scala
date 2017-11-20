@@ -85,13 +85,27 @@ object KafkaFS2Streams {
     // config kafka host and port
     // config topic name
 
-    val pauseTime = 5 seconds
+    val pauseTime = 10 minutes
 
     val client: Stream[Task, KafkaClient[Task]] = kafka.client(
       ensemble = brokers
       , protocol = ProtocolVersion.Kafka_0_10_2
       , clientName = "fs2-client"
     )
+
+    // query offsets
+
+    val queryOffsets = client.flatMap {
+      kc =>
+        Stream.eval(kc.offsetRangeFor(topicId, part0))
+    }
+
+    queryOffsets.map {
+
+      case (head, next) =>
+        logger.log(Level.Info, s"First $head Next $next", null)
+        println(s"First $head Next $next")
+    }.run.unsafeRun()
 
     // get the top items on Hacker News
 
@@ -104,7 +118,7 @@ object KafkaFS2Streams {
       time.sleep(pauseTime)
     }
 
-    val s: Stream[Task, Long] = getTopItems.flatMap {
+    val getAndPublishTopItems: Stream[Task, Long] = getTopItems.flatMap {
       (items: Either[String, HNItemIDList]) =>
 
         items match {
@@ -124,7 +138,7 @@ object KafkaFS2Streams {
 
     }
 
-    val withDelay = (s ++ delay).repeat
+    val withDelay = (getAndPublishTopItems ++ delay).repeat
 
     // end of the world
 
