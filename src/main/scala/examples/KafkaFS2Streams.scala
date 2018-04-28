@@ -112,9 +112,9 @@ object KafkaFS2Streams {
 
     val scheduler = monix.execution.Scheduler.Implicits.global
 
-    val runFetch = HNFetch.getTopItems().runAsync(scheduler)
+    val runFetch = HNFetch.getTopItems()
 
-    val getTopItems = Stream.eval(runFetch)
+    //val getTopItems = Stream.eval(runFetch)
 
     // delay a specified period
 
@@ -122,12 +122,12 @@ object KafkaFS2Streams {
       logger.log(Level.Info, s"Delaying $pauseTime", null)
       time.sleep(pauseTime)
     }
-
-//    val getAndPublishTopItems = getTopItems.flatMap {
+//
+//    val getAndPublishTopItems : Stream[Task, Long] = getTopItems.flatMap {
 //      (items: Either[String, HNItemIDList]) =>
 //
 //        items match {
-//          case Right(items) =>
+//          case Right(items) =>1
 //
 //            val payload = TopItemPayload(System.currentTimeMillis(), items)
 //
