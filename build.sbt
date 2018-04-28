@@ -10,6 +10,7 @@ libraryDependencies ++= Seq(
   "org.scalaj" %% "scalaj-http" % "2.3.0",
   "com.spinoco" %% "fs2-kafka" % "0.1.2",
   "com.lihaoyi" %% "upickle" % "0.4.4",
+  "com.47deg" %% "fetch-monix" % "0.6.0",
   "org.typelevel" %% "cats" % "0.9.0",
   "org.ocpsoft.prettytime" % "prettytime" % "3.2.7.Final",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",

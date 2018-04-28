@@ -7,6 +7,7 @@ import fs2.util.Async
 import fs2.{Scheduler, Strategy, Stream, Task, time}
 import justinhj.hnfetch.HNFetch
 import justinhj.hnfetch.HNFetch.HNItemIDList
+import monix.execution.Scheduler
 import scodec.bits.ByteVector
 import spinoco.fs2.kafka
 import spinoco.fs2.kafka.Logger.Level
@@ -24,7 +25,7 @@ object KafkaFS2Streams {
 
 
   implicit val S: Strategy = Strategy.fromFixedDaemonPool(8,"fs2-kafka-spec")
-  implicit val Sch: Scheduler =  Scheduler.fromFixedDaemonPool(4, "fs2-kafka-spec-scheduler")
+  implicit val Sch: fs2.Scheduler =  fs2.Scheduler.fromFixedDaemonPool(4, "fs2-kafka-spec-scheduler")
   implicit val AG: AsynchronousChannelGroup = AsynchronousChannelGroup.withThreadPool(Executors.newFixedThreadPool(8, Strategy.daemonThreadFactory("fs2-kafka-spec-acg")))
   implicit val F: Async[fs2.Task] = fs2.Task.asyncInstance
   implicit lazy val logger: Logger[Task] = new Logger[Task] {
@@ -109,7 +110,11 @@ object KafkaFS2Streams {
 
     // get the top items on Hacker News
 
-    val getTopItems = Stream.eval(Task.fromFuture(HNFetch.getTopItems()))
+    val scheduler = monix.execution.Scheduler.Implicits.global
+
+    val runFetch = HNFetch.getTopItems().runAsync(scheduler)
+
+    val getTopItems = Stream.eval(runFetch)
 
     // delay a specified period
 
@@ -118,33 +123,33 @@ object KafkaFS2Streams {
       time.sleep(pauseTime)
     }
 
-    val getAndPublishTopItems: Stream[Task, Long] = getTopItems.flatMap {
-      (items: Either[String, HNItemIDList]) =>
-
-        items match {
-          case Right(items) =>
-
-            val payload = TopItemPayload(System.currentTimeMillis(), items)
-
-            val serializedItems = write(payload)
-
-            logger.log(Level.Info, "Writing items", null)
-
-            publishItem(client, serializedItems)
-
-          case Left(err) =>
-            throw new Exception(err)
-        }
-
-    }
-
-    val withDelay = (getAndPublishTopItems ++ delay).repeat
+//    val getAndPublishTopItems = getTopItems.flatMap {
+//      (items: Either[String, HNItemIDList]) =>
+//
+//        items match {
+//          case Right(items) =>
+//
+//            val payload = TopItemPayload(System.currentTimeMillis(), items)
+//
+//            val serializedItems = write(payload)
+//
+//            logger.log(Level.Info, "Writing items", null)
+//
+//            publishItem(client, serializedItems)
+//
+//          case Left(err) =>
+//            throw new Exception(err)
+//        }
+//
+//    }
+//
+//    val withDelay = (getAndPublishTopItems ++ delay).repeat
 
     // end of the world
 
-    val result = withDelay.run.unsafeRun()
-
-    logger.log(Level.Info, "Done", null)
+//    val result = withDelay.run.unsafeRun()
+//
+//    logger.log(Level.Info, "Done", null)
 
   }
 

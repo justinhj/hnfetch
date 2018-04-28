@@ -1,19 +1,20 @@
 package examples
 
 import justinhj.hnfetch.HNFetch._
+import monix.eval.Task
+import monix.execution.Scheduler
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
-import scala.util.{Success, Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 object FrontPage {
 
-  def getItems(itemIDs : Seq[HNItemID]) : Future[Seq[Either[String, HNItem]]] = {
+  def getItems(itemIDs : Seq[HNItemID]) : Task[Seq[Either[String, HNItem]]] = {
 
     val f = itemIDs.map { itemID => getItem(itemID) }
-    Future.sequence(f)
+    Task.sequence(f)
   }
 
   // Print a simple list of the Hacker News front page
@@ -23,7 +24,7 @@ object FrontPage {
   // pages eventually
   // The Hacker News Homepage has 30 items but for politeness we'll just do a smaller number of requests at a time
 
-  def printPage(startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList) : Future[Unit] = {
+  def printPage(startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList) : Task[Unit] = {
 
     // helper to show the article rank
     def itemNum(n: Int) = (startPage * numItemsPerPage) + n + 1
@@ -43,9 +44,11 @@ object FrontPage {
 
   def blockingPrintPage(startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList) : Unit = {
 
-    val f = printPage(startPage, numItemsPerPage, hNItemIDList)
+    val scheduler = Scheduler.Implicits.global
 
-    Await.ready(f, 15 seconds)
+    val task: Task[Unit] = printPage(startPage, numItemsPerPage, hNItemIDList)
+
+    Await.result(task.runAsync(scheduler), Duration.Inf)
   }
 
 
@@ -57,9 +60,11 @@ object FrontPage {
 
     println("Getting top items")
 
+    val scheduler = Scheduler.Implicits.global
+
     val topItemsF = getTopItems()
 
-    Await.result(topItemsF, 10 seconds) match {
+    Await.result(topItemsF.runAsync(scheduler), 10 seconds) match {
 
       case Right(topItems) =>
         println(s"Got items")

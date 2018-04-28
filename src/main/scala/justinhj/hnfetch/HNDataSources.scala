@@ -2,6 +2,7 @@ package justinhj.hnfetch
 
 import fetch.{DataSource, ExecutionType, Fetch, Query, Sequential}
 import justinhj.hnfetch.HNFetch.{HNItem, HNItemID, HNUser, HNUserID}
+import monix.execution.Scheduler
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -25,11 +26,13 @@ object HNDataSources {
     override def maxBatchSize : Option[Int] = batchSize
     override def batchExecution : ExecutionType = executionType
 
+    implicit val scheduler = Scheduler.Implicits.global
+
     override def fetchOne(id: HNUserID): Query[Option[HNUser]] = {
 
       Query.async({
         (ok, fail) =>
-          HNFetch.getUser(id) onComplete {
+          HNFetch.getUser(id).runOnComplete {
 
             case Success(futSucc) => futSucc match {
               case Right(item) =>
@@ -59,11 +62,13 @@ object HNDataSources {
     override def maxBatchSize : Option[Int] = batchSize
     override def batchExecution : ExecutionType = executionType
 
+    implicit val scheduler = Scheduler.Implicits.global
+
     override def fetchOne(id: HNItemID): Query[Option[HNItem]] = {
       Query.async({
         (ok, fail) =>
           println(s"GET Item $id")
-          HNFetch.getItem(id) onComplete {
+          HNFetch.getItem(id).runOnComplete {
 
             case Success(futSucc) => futSucc match {
               case Right(item) =>

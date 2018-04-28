@@ -1,11 +1,14 @@
 package justinhj.hnfetch
 
 import upickle.default._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+
 import scala.util.{Failure, Success, Try}
 import scalaj.http.{BaseHttp, HttpConstants}
 
+import monix.eval.Task
+import monix.execution.Scheduler
+
+import fetch.monixTask.implicits._
 
 // Get Hacker News items
 
@@ -60,14 +63,14 @@ object HNFetch {
                    )
 
   // constuct the query to get an item
-  def getUser(userID: HNUserID) : Future[Either[String, HNUser]] = {
+  def getUser(userID: HNUserID) : Task[Either[String, HNUser]] = {
     val url = getUserURL(userID)
 
     //println(s"GET $url")
     hnRequest[HNUser](url)
   }
 
-  def getItem(itemId: HNItemID) : Future[Either[String, HNItem]] = {
+  def getItem(itemId: HNItemID) : Task[Either[String, HNItem]] = {
     val url = getItemURL(itemId)
 
     //println(s"GET $url")
@@ -76,13 +79,13 @@ object HNFetch {
 
   type HNItemIDList = List[HNItemID]
 
-  def getTopItems() : Future[Either[String, HNItemIDList]] = {
+  def getTopItems() : Task[Either[String, HNItemIDList]] = {
     hnRequest[HNItemIDList](getTopItemsURL)
   }
 
-  def hnRequest[T](url: String)(implicit r: Reader[T]) : Future[Either[String, T]] = {
+  def hnRequest[T](url: String)(implicit r: Reader[T]) : Task[Either[String, T]] = {
 
-    Future {customHttp(url).asString}.map {
+    Task {customHttp(url).asString}.map {
       response =>
         if(response.code == 200) {
           Try(read[T](response.body)) match {
@@ -102,11 +105,11 @@ object HNFetch {
           Left(s"Failed to retrieve $url code: ${response.code}")
         }
     }
-      .recover {
-        case e : Exception =>
-          println(s"got exception ${e.getMessage} due to ${e.getCause}")
-          Left("Failed to retrieve $url becasue ${e.getMessage}")
-      }
+//      .recover {
+//        case e : Exception =>
+//          println(s"got exception ${e.getMessage} due to ${e.getCause}")
+//          Left("Failed to retrieve $url becasue ${e.getMessage}")
+//      }
   }
 
 }

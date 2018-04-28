@@ -13,6 +13,7 @@ import fetch.implicits._
 import cats.instances.list._
 import cats.syntax.traverse._
 import fetch.syntax._
+import monix.execution.Scheduler
 
 object FrontPageWithFetch {
 
@@ -62,9 +63,11 @@ object FrontPageWithFetch {
 
     var cache = None
 
+    val scheduler = Scheduler.Implicits.global
+
     val topItemsF = getTopItems()
 
-    Await.result(topItemsF, 10 seconds) match {
+    Await.result(topItemsF.runAsync(scheduler), 10 seconds) match {
 
       case Right(topItems) =>
         println(s"Got ${topItems.size} items")
