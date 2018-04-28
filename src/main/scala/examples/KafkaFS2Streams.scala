@@ -51,7 +51,7 @@ object KafkaFS2Streams {
     client.flatMap {
       clientTask =>
 
-        val timeMillis = System.currentTimeMillis()
+        //val timeMillis = System.currentTimeMillis()
 
         ByteVector.encodeUtf8(item) match {
           case Right(message) =>
@@ -123,26 +123,26 @@ object KafkaFS2Streams {
       time.sleep(pauseTime)
     }
 //
-//    val getAndPublishTopItems : Stream[Task, Long] = getTopItems.flatMap {
-//      (items: Either[String, HNItemIDList]) =>
-//
-//        items match {
-//          case Right(items) =>1
-//
-//            val payload = TopItemPayload(System.currentTimeMillis(), items)
-//
-//            val serializedItems = write(payload)
-//
-//            logger.log(Level.Info, "Writing items", null)
-//
-//            publishItem(client, serializedItems)
-//
-//          case Left(err) =>
-//            throw new Exception(err)
-//        }
-//
-//    }
-//
+    val getAndPublishTopItems : Stream[Task, Long] = getTopItems.flatMap {
+      (items: Either[String, HNItemIDList]) =>
+
+        items match {
+          case Right(items) =>1
+
+            val payload = TopItemPayload(System.currentTimeMillis(), items)
+
+            val serializedItems = write(payload)
+
+            logger.log(Level.Info, "Writing items", null)
+
+            publishItem(client, serializedItems)
+
+          case Left(err) =>
+            throw new Exception(err)
+        }
+
+    }
+
 //    val withDelay = (getAndPublishTopItems ++ delay).repeat
 
     // end of the world
