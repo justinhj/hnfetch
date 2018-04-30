@@ -10,8 +10,6 @@ libraryDependencies ++= Seq(
   "com.47deg" %% "fetch" % fetchVersion,
   "com.47deg" %% "fetch-monix" % fetchVersion,
   "org.scalaj" %% "scalaj-http" % "2.3.0",
-  "com.spinoco" %% "fs2-kafka" % "0.2.1-SNAPSHOT",
-  "com.spinoco" %% "fs2-crypto" % "0.2.1-SNAPSHOT",
   "com.lihaoyi" %% "upickle" % "0.4.4",
   "org.typelevel" %% "cats-core" % "1.1.0",
   "org.typelevel" %% "cats-effect" % "1.0.0-RC",
