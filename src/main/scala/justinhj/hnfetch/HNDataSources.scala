@@ -36,7 +36,7 @@ object HNDataSources {
 
             case Success(futSucc) => futSucc match {
               case Right(item) =>
-                println(s"GOT Item $id")
+                //println(s"GOT Item $id")
                 ok(Some(item))
               case Left(err) =>
                 ok(None)

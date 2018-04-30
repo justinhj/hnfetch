@@ -78,7 +78,7 @@ object FrontPage {
             case s: String =>
               val page = Try(s.toInt) match {
                 case Success(n) =>
-                  println(s"Printing page $n")
+                  println(s"Printing page  $n")
 
                   blockingPrintPage(n, numItemsPerPage, topItems)
 

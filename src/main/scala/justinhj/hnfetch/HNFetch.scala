@@ -3,20 +3,23 @@ package justinhj.hnfetch
 import upickle.default._
 
 import scala.util.{Failure, Success, Try}
-import scalaj.http.{BaseHttp, HttpConstants}
-
+import scalaj.http.{BaseHttp, HttpConstants, HttpOptions, HttpResponse}
 import monix.eval.Task
-import monix.execution.Scheduler
 
-import fetch.monixTask.implicits._
 
 // Get Hacker News items
 
 object HNFetch {
 
+  def customOptions: Seq[HttpOptions.HttpOption] = Seq(
+    HttpOptions.connTimeout(10000),
+    HttpOptions.readTimeout(10000),
+    HttpOptions.followRedirects(true)
+  )
+
   object customHttp extends BaseHttp(
     proxyConfig = None,
-    options = HttpConstants.defaultOptions,
+    options = customOptions,
     charset = HttpConstants.utf8,
     sendBufferSize = 4096,
     userAgent = "justinhj/hnfetch/1.0",
@@ -85,31 +88,33 @@ object HNFetch {
 
   def hnRequest[T](url: String)(implicit r: Reader[T]) : Task[Either[String, T]] = {
 
-    Task {customHttp(url).asString}.map {
+    Task {
+
+      println(s"url get on thread ${Thread.currentThread().getName()}")
+
+      customHttp(url).asString
+    }.map {
       response =>
-        if(response.code == 200) {
+        println(s"parse url get on thread ${Thread.currentThread().getName()}")
+
+        if (response.code == 200) {
           Try(read[T](response.body)) match {
             case Success(good) if good == null =>
-              println("got empty")
+              //println("got empty")
               Left("Not found")
             case Success(good) =>
               //println("got successfully")
               Right(good)
             case Failure(e) =>
-              println(s"got parse error ${response.body}")
+              //println(s"got parse error ${response.body}")
               Left("Failed to read " + e.getMessage())
           }
         }
         else {
-          println("got no response")
+          //println("got no response")
           Left(s"Failed to retrieve $url code: ${response.code}")
         }
     }
-//      .recover {
-//        case e : Exception =>
-//          println(s"got exception ${e.getMessage} due to ${e.getCause}")
-//          Left("Failed to retrieve $url becasue ${e.getMessage}")
-//      }
   }
 
 }
