@@ -1,10 +1,10 @@
 package justinhj.hnfetch
 
+import monix.eval.Task
+import scalaj.http.{BaseHttp, HttpConstants, HttpOptions}
 import upickle.default._
 
 import scala.util.{Failure, Success, Try}
-import scalaj.http.{BaseHttp, HttpConstants, HttpOptions, HttpResponse}
-import monix.eval.Task
 
 
 // Get Hacker News items
@@ -66,14 +66,14 @@ object HNFetch {
                    )
 
   // constuct the query to get an item
-  def getUser(userID: HNUserID) : Task[Either[String, HNUser]] = {
+  def getUser(userID: HNUserID) : Either[String, HNUser] = {
     val url = getUserURL(userID)
 
     //println(s"GET $url")
     hnRequest[HNUser](url)
   }
 
-  def getItem(itemId: HNItemID) : Task[Either[String, HNItem]] = {
+  def getItem(itemId: HNItemID) : Either[String, HNItem] = {
     val url = getItemURL(itemId)
 
     //println(s"GET $url")
@@ -82,20 +82,17 @@ object HNFetch {
 
   type HNItemIDList = List[HNItemID]
 
-  def getTopItems() : Task[Either[String, HNItemIDList]] = {
+  def getTopItems(): Task[Either[String, HNItemIDList]] = Task.eval {
     hnRequest[HNItemIDList](getTopItemsURL)
   }
 
-  def hnRequest[T](url: String)(implicit r: Reader[T]) : Task[Either[String, T]] = {
+  def hnRequest[T](url: String)(implicit r: Reader[T]) : Either[String, T] = {
 
-    Task {
+    println(s"url get on thread ${Thread.currentThread().getName()}")
 
-      println(s"url get on thread ${Thread.currentThread().getName()}")
+    Try(customHttp(url).asString) match {
 
-      customHttp(url).asString
-    }.map {
-      response =>
-        println(s"parse url get on thread ${Thread.currentThread().getName()}")
+      case Success(response) =>
 
         if (response.code == 200) {
           Try(read[T](response.body)) match {
@@ -103,7 +100,7 @@ object HNFetch {
               //println("got empty")
               Left("Not found")
             case Success(good) =>
-              //println("got successfully")
+              println(s"got url on thread ${Thread.currentThread().getName()}")
               Right(good)
             case Failure(e) =>
               //println(s"got parse error ${response.body}")
@@ -114,6 +111,9 @@ object HNFetch {
           //println("got no response")
           Left(s"Failed to retrieve $url code: ${response.code}")
         }
+      case Failure(err) =>
+        Left(s"Failed to retrieve $url error: ${err.getMessage}")
+
     }
   }
 

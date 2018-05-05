@@ -12,7 +12,7 @@ object FrontPage {
 
   def getItems(itemIDs : Seq[HNItemID]) : Task[Seq[Either[String, HNItem]]] = {
 
-    val f = itemIDs.map { itemID => getItem(itemID) }
+    val f = itemIDs.map { itemID => Task(getItem(itemID)) }
     Task.sequence(f)
   }
 

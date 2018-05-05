@@ -8,7 +8,6 @@ import fetch.syntax._
 import justinhj.hnfetch.HNDataSources
 import justinhj.hnfetch.HNFetch._
 import monix.eval.Task
-import monix.execution.Scheduler
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -16,9 +15,6 @@ import scala.io.StdIn.readLine
 import scala.util.Try
 
 object FrontPageWithFetch {
-
-  // Use Monix scheduler tuned for IO tasks
-  lazy val scheduler = Scheduler.io()
 
   // Fetch a page of Hacker News items with optional cache from a previous call
   def fetchPage(startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: Option[DataSourceCache] = None):
@@ -93,6 +89,7 @@ object FrontPageWithFetch {
         for (
           fetchResult <- fetchPage(page, numItemsPerPage, topItems, cache);
           (env, items) = fetchResult;
+          _ = println(s"${env.rounds.size} fetch rounds");
           _ <- printPageItems(page, numItemsPerPage, items);
           newCache <- showPagesLoop(topItems, Some(env.cache))
         ) yield newCache
@@ -101,6 +98,10 @@ object FrontPageWithFetch {
       case None =>
         Task.now(cache)
     }
+
+  // Set a fixed size pool with a small number of threads so we can be nice to the Hacker News servers by
+  // limiting the number of concurrent requests
+  val scheduler = monix.execution.Scheduler.fixedPool("monix-pool", 4, true)
 
   def main(args : Array[String]) : Unit = {
 

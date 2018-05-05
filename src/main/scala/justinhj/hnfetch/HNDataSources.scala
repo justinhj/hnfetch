@@ -1,22 +1,16 @@
 package justinhj.hnfetch
 
-import fetch.{DataSource, ExecutionType, Fetch, Query, Sequential}
+import fetch.{DataSource, ExecutionType, Fetch, Query, Parallel}
 import justinhj.hnfetch.HNFetch.{HNItem, HNItemID, HNUser, HNUserID}
-import monix.execution.Scheduler
-
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
 
 object HNDataSources {
 
   // Some constants to control the behaviour of Fetch executions
-  // These could be moved to a config file in a real applications
+  // These could be moved to a config file in a real application
 
-  val fetchTimeout : Duration = 10 seconds // max time to wait for a single fetch
-  val batchSize = Some(8) // max concurrent requests of each data source
-  val executionType : ExecutionType = Sequential // whether to do batches concurrently or sequentially
+  val batchSize = Some(1) // max concurrent requests of each data source, we don't support batching so set to 1
+  val executionType : ExecutionType = Parallel // whether to do batches concurrently or sequentially
 
   import cats.data.NonEmptyList
 
@@ -26,27 +20,12 @@ object HNDataSources {
     override def maxBatchSize : Option[Int] = batchSize
     override def batchExecution : ExecutionType = executionType
 
-    implicit val scheduler = Scheduler.Implicits.global
-
     override def fetchOne(id: HNUserID): Query[Option[HNUser]] = {
 
-      Query.async({
-        (ok, fail) =>
-          HNFetch.getUser(id).runOnComplete {
-
-            case Success(futSucc) => futSucc match {
-              case Right(item) =>
-                //println(s"GOT Item $id")
-                ok(Some(item))
-              case Left(err) =>
-                ok(None)
-            }
-
-            case Failure(e) =>
-              fail(e)
-        }
-      }, fetchTimeout)
-
+      Query.sync(HNFetch.getUser(id) match {
+        case Right(a) => Some(a)
+        case Left(_) => None
+      })
     }
 
     // If the data source supports multiple queries (the HN API does not) you can implement it here
@@ -62,26 +41,11 @@ object HNDataSources {
     override def maxBatchSize : Option[Int] = batchSize
     override def batchExecution : ExecutionType = executionType
 
-    implicit val scheduler = Scheduler.Implicits.global
-
     override def fetchOne(id: HNItemID): Query[Option[HNItem]] = {
-      Query.async({
-        (ok, fail) =>
-          println(s"GET Item $id")
-          HNFetch.getItem(id).runOnComplete {
-
-            case Success(futSucc) => futSucc match {
-              case Right(item) =>
-                println(s"GOT Item $id")
-                ok(Some(item))
-              case Left(err) =>
-                ok(None)
-            }
-
-            case Failure(e) =>
-              fail(e)
-          }
-      }, fetchTimeout)
+      Query.sync(HNFetch.getItem(id) match {
+        case Right(a) => Some(a)
+        case Left(_) => None
+      })
     }
 
     // If the data source supports multiple queries (the HN API does not) you can implement it here

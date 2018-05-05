@@ -1,5 +1,6 @@
 package justinhj.hnfetch
 
+import monix.eval.Task
 import monix.execution.Scheduler
 import org.scalatest._
 
@@ -20,7 +21,7 @@ class HNFetchTest extends AsyncFlatSpec with Matchers with OptionValues with Ins
   it should "be able to fetch a specific user" in {
     val testUser = "justinhj"
 
-    HNFetch.getUser(testUser).runAsync.map {
+    Task(HNFetch.getUser(testUser)).runAsync.map {
       case Right(user) => assert(user.id == testUser)
       case Left(err) => fail
     }
@@ -29,7 +30,7 @@ class HNFetchTest extends AsyncFlatSpec with Matchers with OptionValues with Ins
   it should "be able to fetch a specific item" in {
     val itemID = 13867316
 
-    HNFetch.getItem(itemID).runAsync.map {
+    Task(HNFetch.getItem(itemID)).runAsync.map {
       case Right(item) => assert(item.id == itemID)
       case Left(err) => fail
     }
