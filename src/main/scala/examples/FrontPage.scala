@@ -3,7 +3,6 @@ package examples
 import justinhj.hnfetch.HNFetch._
 import monix.eval.Task
 import monix.execution.Scheduler
-
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
