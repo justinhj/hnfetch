@@ -17,8 +17,8 @@ import scala.util.Try
 
 object FrontPageWithFetch {
 
-  // Default Monix scheduler
-  private val scheduler = Scheduler.Implicits.global
+  // Use Monix scheduler tuned for IO tasks
+  lazy val scheduler = Scheduler.io()
 
   // Fetch a page of Hacker News items with optional cache from a previous call
   def fetchPage(startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: Option[DataSourceCache] = None):
