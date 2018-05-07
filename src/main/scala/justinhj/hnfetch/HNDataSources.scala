@@ -22,7 +22,7 @@ object HNDataSources {
 
     override def fetchOne(id: HNUserID): Query[Option[HNUser]] = {
 
-      Query.sync(HNFetch.getUser(id) match {
+      Query.sync(HNFetch.getUserSync(id) match {
         case Right(a) => Some(a)
         case Left(_) => None
       })
@@ -42,7 +42,7 @@ object HNDataSources {
     override def batchExecution : ExecutionType = executionType
 
     override def fetchOne(id: HNItemID): Query[Option[HNItem]] = {
-      Query.sync(HNFetch.getItem(id) match {
+      Query.sync(HNFetch.getItemSync(id) match {
         case Right(a) => Some(a)
         case Left(_) => None
       })

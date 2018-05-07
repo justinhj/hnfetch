@@ -9,6 +9,7 @@ val fetchVersion = "0.7.2"
 libraryDependencies ++= Seq(
   "com.47deg" %% "fetch" % fetchVersion,
   "com.47deg" %% "fetch-monix" % fetchVersion,
+  "io.monix" %% "monix-reactive" % "3.0.0-M3",
   "org.scalaj" %% "scalaj-http" % "2.3.0",
   "com.lihaoyi" %% "upickle" % "0.4.4",
   "org.typelevel" %% "cats-core" % "1.1.0",

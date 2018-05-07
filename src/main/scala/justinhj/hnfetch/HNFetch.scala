@@ -6,7 +6,6 @@ import upickle.default._
 
 import scala.util.{Failure, Success, Try}
 
-
 // Get Hacker News items
 
 object HNFetch {
@@ -26,7 +25,7 @@ object HNFetch {
     compress = false
   )
 
-  val baseHNURL = "https://hacker-news.firebaseio.com/v0/"
+  private val baseHNURL = "https://hacker-news.firebaseio.com/v0/"
 
   type HNUserID = String
   type HNItemID = Int
@@ -42,10 +41,14 @@ object HNFetch {
                     about : String, // The user's optional self-description. HTML.
                     submitted : List[HNItemID] ) // List of the user's stories, polls and comments.
 
-  // constuct url for api queries
-  def getUserURL(userId: HNUserID) = s"${baseHNURL}user/$userId.json"
-  def getItemURL(itemId: HNItemID) = s"${baseHNURL}item/$itemId.json"
-  val getTopItemsURL = s"${baseHNURL}topstories.json"
+  // These functions construct the url for various api queries
+  private def getUserURL(userId: HNUserID) = s"${baseHNURL}user/$userId.json"
+
+  private def getItemURL(itemId: HNItemID) = s"${baseHNURL}item/$itemId.json"
+
+  private val getTopItemsURL = s"${baseHNURL}topstories.json"
+
+  private val getMaxItemURL = s"${baseHNURL}maxitem.json"
 
   case class HNItem(
                      id : HNItemID, // The item's unique id.
@@ -65,30 +68,53 @@ object HNFetch {
                      descendants : Int = 0 // In the case of stories or polls, the total comment count.
                    )
 
-  // constuct the query to get an item
-  def getUser(userID: HNUserID) : Either[String, HNUser] = {
+  // Get user details. This is a blocking call
+  def getUserSync(userID: HNUserID) : Either[String, HNUser] = {
     val url = getUserURL(userID)
 
-    //println(s"GET $url")
-    hnRequest[HNUser](url)
+    hnRequestSync[HNUser](url)
   }
 
-  def getItem(itemId: HNItemID) : Either[String, HNItem] = {
+  // getUser via a Monix Task
+  def getUser(userID: HNUserID) : Task[Either[String, HNUser]] = Task(getUserSync(userID))
+
+  // Get Item details. This is a blocking call
+  def getItemSync(itemId: HNItemID) : Either[String, HNItem] = {
     val url = getItemURL(itemId)
 
-    //println(s"GET $url")
-    hnRequest[HNItem](url)
+    hnRequestSync[HNItem](url)
   }
+
+  // getItem via a Monix Task
+  def getItem(itemId: HNItemID) : Task[Either[String, HNItem]] = Task(getItemSync(itemId))
 
   type HNItemIDList = List[HNItemID]
 
-  def getTopItems(): Task[Either[String, HNItemIDList]] = Task.eval {
-    hnRequest[HNItemIDList](getTopItemsURL)
+  // Get the ids of the top items. This is a blocking call
+  def getTopItemsSync(): Either[String, HNItemIDList] = {
+    hnRequestSync[HNItemIDList](getTopItemsURL)
   }
 
-  def hnRequest[T](url: String)(implicit r: Reader[T]) : Either[String, T] = {
+  def getTopItems(): Task[Either[String, HNItemIDList]] = Task {
+    hnRequestSync[HNItemIDList](getTopItemsURL)
+  }
 
-    println(s"url get on thread ${Thread.currentThread().getName()}")
+  // Top item is the latest item posted to the site
+
+  // Get max item. This is a blocking call
+  def getMaxItemSync(): Either[String, HNItemID] = {
+    hnRequestSync[HNItemID](getMaxItemURL)
+  }
+
+  def getMaxItem(): Task[Either[String, HNItemID]] = Task {
+    hnRequestSync[HNItemID](getMaxItemURL)
+  }
+
+  // Executes the API request. We need a upickle.Reader for the type T so it can be parsed
+  // on receipt
+  def hnRequestSync[T](url: String)(implicit r: Reader[T]) : Either[String, T] = {
+
+    println(s"url get on thread ${Thread.currentThread().getName}")
 
     Try(customHttp(url).asString) match {
 
@@ -100,11 +126,11 @@ object HNFetch {
               //println("got empty")
               Left("Not found")
             case Success(good) =>
-              println(s"got url on thread ${Thread.currentThread().getName()}")
+              println(s"got url on thread ${Thread.currentThread().getName}")
               Right(good)
             case Failure(e) =>
               //println(s"got parse error ${response.body}")
-              Left("Failed to read " + e.getMessage())
+              Left(s"Failed to read ${e.getMessage}")
           }
         }
         else {

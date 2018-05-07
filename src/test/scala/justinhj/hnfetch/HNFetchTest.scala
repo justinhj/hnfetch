@@ -21,7 +21,7 @@ class HNFetchTest extends AsyncFlatSpec with Matchers with OptionValues with Ins
   it should "be able to fetch a specific user" in {
     val testUser = "justinhj"
 
-    Task(HNFetch.getUser(testUser)).runAsync.map {
+    Task(HNFetch.getUserSync(testUser)).runAsync.map {
       case Right(user) => assert(user.id == testUser)
       case Left(err) => fail
     }
@@ -30,7 +30,7 @@ class HNFetchTest extends AsyncFlatSpec with Matchers with OptionValues with Ins
   it should "be able to fetch a specific item" in {
     val itemID = 13867316
 
-    Task(HNFetch.getItem(itemID)).runAsync.map {
+    Task(HNFetch.getItemSync(itemID)).runAsync.map {
       case Right(item) => assert(item.id == itemID)
       case Left(err) => fail
     }

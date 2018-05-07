@@ -55,12 +55,11 @@ object FrontPageWithFetch {
   }
 
   def getNumericInput: Task[Option[Int]] = Task {
-    val intMaybe = Try {
+    Try {
       val input = readLine()
       input.toInt
     }.toOption
 
-    intMaybe
   }
 
   def printTopItemCount(topItems: HNItemIDList) = Task {
