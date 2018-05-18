@@ -16,6 +16,7 @@ libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-effect" % "1.0.0-RC",
   "org.ocpsoft.prettytime" % "prettytime" % "3.2.7.Final",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+  "com.chuusai" %% "shapeless" % "2.3.3",
   "com.lihaoyi" % "ammonite" % "1.0.0" % "test" cross CrossVersion.full
 )
 
