@@ -21,7 +21,7 @@ object QueueSample {
 
   def startJobs() : Cancelable = {
 
-    Observable.intervalAtFixedRate(1 second, 100 milliseconds).filter{
+    Observable.intervalAtFixedRate(1 second, 500 milliseconds).filter{
       x =>
         r.nextBoolean()
     }.map {
@@ -38,23 +38,46 @@ object QueueSample {
 
   // We're gonna print the queue size, remove a batch of jobs
 
-  def startWorker() : Cancelable = {
+  def jobsObservable(batchSize: Integer, interval: FiniteDuration)  = {
 
-    val batch = 10
-
-    Observable.interval(3 seconds).foreach {
+    Observable.interval(interval).map {
 
       _ =>
         val size = jobs.size()
-        val takeJobs = Math.min(batch, size)
 
-        println(s"removing $takeJobs jobs of $size")
-        (1 to takeJobs).foreach {
-          _ =>
-            jobs.remove()
+        if(size > 0) {
+          val takeJobs = Math.min(batchSize, size)
+
+          (1 to takeJobs).map {
+            _ =>
+              jobs.remove()
+          }
+        }
+        else {
+          IndexedSeq.empty[Job]
         }
 
+
     }
+
+  }
+
+  def processJobs()= {
+
+    jobsObservable(10, 200 milliseconds).map{
+      batch =>
+        if(batch.size > 0) {
+          s"BEGIN ${batch.size} jobs starting at ${batch(0).id}"
+
+          // do pretend work
+          Thread.sleep(200)
+
+          s"END ${batch.size} jobs starting at ${batch(0).id}"
+        }
+        else
+          "no jobs"
+    }.
+    dump("job output").subscribe
 
   }
 
