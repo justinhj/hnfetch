@@ -4,6 +4,8 @@ version := "1.0"
 
 scalaVersion := "2.12.2"
 
+ensimeScalaVersion in ThisBuild := "2.12.2"
+
 val fetchVersion = "0.7.2"
 
 libraryDependencies ++= Seq(
