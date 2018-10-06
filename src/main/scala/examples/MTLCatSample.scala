@@ -5,9 +5,8 @@ import cats.data._
 import cats.mtl._
 import cats.implicits._
 import cats.mtl.implicits._
-import cats.effect.IO
 
-object MTLFetch {
+object MTLCatSample {
 
   case class Cat(name: String, yearOfBirth: Int)
   val sampleCat1 = Cat("Garfield", 1965)
