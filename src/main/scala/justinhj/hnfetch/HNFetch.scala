@@ -43,13 +43,13 @@ object HNFetch {
                     submitted : List[HNItemID] ) // List of the user's stories, polls and comments.
 
   // These functions construct the url for various api queries
-  private def getUserURL(userId: HNUserID) = s"${baseHNURL}user/$userId.json"
+  def getUserURL(userId: HNUserID) = s"${baseHNURL}user/$userId.json"
 
-  private def getItemURL(itemId: HNItemID) = s"${baseHNURL}item/$itemId.json"
+  def getItemURL(itemId: HNItemID) = s"${baseHNURL}item/$itemId.json"
 
-  private val getTopItemsURL = s"${baseHNURL}topstories.json"
+  val getTopItemsURL = s"${baseHNURL}topstories.json"
 
-  private val getMaxItemURL = s"${baseHNURL}maxitem.json"
+  val getMaxItemURL = s"${baseHNURL}maxitem.json"
 
   case class HNItem(
                      id : HNItemID, // The item's unique id.
