@@ -7,6 +7,7 @@ import upickle.default._
 import scala.util.{Failure, Success, Try}
 
 // Get Hacker News items
+// Uses Scalaj.http and Li Hauyi's uPickle for parsing
 
 object HNFetch {
 
@@ -25,7 +26,7 @@ object HNFetch {
     compress = false
   )
 
-  private val baseHNURL = "https://hacker-news.firebaseio.com/v0/"
+  val baseHNURL : String = "https://hacker-news.firebaseio.com/v0/"
 
   type HNUserID = String
   type HNItemID = Int

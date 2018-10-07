@@ -38,6 +38,8 @@ object MTLCatSample {
 
     // Materialize the program with monad transformer instances
 
+    // Note the effect type is IO, it could easily be Id or something else
+
     val p = program[ReaderT[EitherT[WriterT[IO, Log, ?], String, ?], Cat, ?]]
 
     val (log, eitherResult) = p.run(sampleCat1).value.run.unsafeRunSync

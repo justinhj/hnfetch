@@ -5,14 +5,22 @@ import cats.data._
 import cats.mtl._
 import cats.implicits._
 import cats.mtl.implicits._
-import cats.effect.IO
+import cats.effect._
 import upickle.default.{Reader => uPickleReader}
+import justinhj.hnfetch.HNFetch._
+import scala.concurrent.ExecutionContext
+import scala.util.Try
+import cats.syntax._
+import java.util.concurrent.Executors
+import scala.concurrent.ExecutionContext
 
 object MTLFetch {
 
   type Log = Vector[String]
 
-    implicit val showLog: Show[Log] = Show.show{
+  type Error = String
+
+  implicit val showLog: Show[Log] = Show.show{
     l =>
       "Log\n===\n" ++
       l.foldLeft("") {_ + _ + "\n"}
@@ -20,8 +28,35 @@ object MTLFetch {
 
   case class APIConfig(url: String)
 
+  //type IOProgram = ReaderT[EitherT[WriterT[IO, Log, ?], Error, ?], APIConfig, ?]
+
   trait URLGetter[F[_]] {
-    def getUrl(url: String) : F[String]
+    def getUrl(url: String)(implicit ft : FunctorTell[IO, Log],
+                            fr: FunctorRaise[IO, Error],
+                            aa: ApplicativeAsk[IO, APIConfig]) : F[String]
+  }
+
+  // We want to test the API both against the real site and against a simple virtual site for testing, for this
+  // purpose we need two implementations of URLGetter. Note that the effect class F for the real one uses IO
+  // whilst the test one can use any effect (Id for example)
+
+  class HNURLGetter(implicit ec: ExecutionContext) extends URLGetter[IO] {
+
+    def getUrl2(url: String)(implicit ft : FunctorTell[IO, Log],
+      fr: FunctorRaise[IO, Error],
+      aa: ApplicativeAsk[IO, APIConfig]): IO[String] = {
+
+      for (
+        _ <- IO.shift(ec);
+        response <- IO(customHttp(url).asString);
+        result <- if(response.is2xx) response.body.pure[IO]
+                  else fr.raise(s"Didn't get code 200. Got (${response.code})")
+
+      ) yield result
+
+    }
+
+    def getUrl(url: String)(implicit ft: FunctorTell[IO, Log], fr: FunctorRaise[IO, Error], aa: ApplicativeAsk[IO, APIConfig]): IO[String] = ???
   }
 
   // Get a thing of the appropriate type
@@ -29,10 +64,12 @@ object MTLFetch {
   // We can raise errors
   // We can read a config
 
-  def hnRequest[F[_] : Monad, ResponseType](implicit ft : FunctorTell[F, Log],
+  def hnRequest[F[_] : Monad, G[_] : Monad, ResponseType](ug: URLGetter[G])(implicit ft : FunctorTell[F, Log],
+    fr: FunctorRaise[F, Error],
     aa: ApplicativeAsk[F, APIConfig],
-    r : uPickleReader[ResponseType],
-    ug : URLGetter[F]) : F[ResponseType] = {
+    //r : uPickleReader[ResponseType],
+    //ug : URLGetter[F]
+                                                       ) : F[Boolean] = {
 
     for (
       url <- aa.ask.map(_.url);
@@ -42,15 +79,26 @@ object MTLFetch {
 
     ) yield true
 
-    ???
+    
 
   }
 
   def main(args: Array[String]): Unit = {
 
-    val sampleLog = Vector("Sample log 1", "Sample log 2")
+    val threadPool = Executors.newFixedThreadPool(4)
 
-    println(sampleLog.show)
+    val ec = ExecutionContext.fromExecutor(threadPool)
+
+    val urlGetter = new HNURLGetter()(ec)
+
+    val result = hnRequest[ReaderT[EitherT[WriterT[IO, Log, ?], Error, ?], APIConfig, ?], IO, Boolean](urlGetter)
+
+    //    val sampleLog = Vector("Sample log 1", "Sample log 2")
+//
+//    println(sampleLog.show)
 
   }
 }
+
+
+
