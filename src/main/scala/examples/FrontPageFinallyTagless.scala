@@ -23,29 +23,21 @@ object FrontPageFinallyTagless {
   }
 
   trait Parsing[F[_]] {
-    def parse[A](json: String)(implicit tag: TypeTag[A]) : F[Either[String, A]]
+    def parse[A](json: String)(implicit D: Decoder[A]) : F[Either[String, A]]
   }
 
   // Implement parsing using Circe
 
   val circeParser = new Parsing[IO] {
-    def parse[A](json: String)(implicit tag: TypeTag[A]) : IO[Either[String, A]] = {
+    def parse[A](json: String)(implicit D: Decoder[A]) : IO[Either[String, A]] = {
 
-      typeOf[A] match {
-        case _ : HNUser =>
-          decode[HNUser](json) match {
-            case Right(a : A) =>
-              IO.pure(Right(a))
-            case Left(err) =>
-              IO.pure(Left(err.toString))
-
-          }
-
-        case _ =>
-          IO.pure(Left(s"Unknown type $tag"))
+      decode[A](json) match {
+        case Right(a) =>
+          IO.pure(Right(a))
+        case Left(err) =>
+          IO.pure(Left(err.toString))
       }
-
-
+      
     }
   }
 
@@ -53,7 +45,7 @@ object FrontPageFinallyTagless {
   class HNApi[F[_] : Monad](L : Logging[F], H : HttpClient[F], P : Parsing[F]) {
 
     // All functions are written in terms of this one
-    def exec[A](url: String)(implicit tag: TypeTag[A]) : F[Either[String, A]] = {
+    def exec[A](url: String)(implicit D: Decoder[A]) : F[Either[String, A]] = {
 
       for (
         _ <- L.log(s"Fetching $url");
