@@ -3,7 +3,7 @@ package justinhj.hnfetch
 import monix.eval.Task
 import scalaj.http.{BaseHttp, HttpConstants, HttpOptions}
 import upickle.default._
-
+import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import scala.util.{Failure, Success, Try}
 
 // Get Hacker News items

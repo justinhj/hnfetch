@@ -71,7 +71,7 @@ object FrontPage {
         def inputLoop() : Unit = {
           println("Enter page # or q to quit: ")
 
-          io.StdIn.readLine match {
+          scala.io.StdIn.readLine match {
             case "q" =>
             case "" =>
             case s: String =>

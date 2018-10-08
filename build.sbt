@@ -42,6 +42,14 @@ libraryDependencies ++= Seq(
   "com.lihaoyi" % "ammonite" % "1.0.0" % "test" cross CrossVersion.full
 )
 
+val circeVersion = "0.9.3"
+
+libraryDependencies ++= Seq(
+  "io.circe" %% "circe-core",
+  "io.circe" %% "circe-generic",
+  "io.circe" %% "circe-parser"
+).map(_ % circeVersion)
+
 sourceGenerators in Test += Def.task {
   val file = (sourceManaged in Test).value / "amm.scala"
   IO.write(file, """object amm extends App { ammonite.Main().run() }""")
