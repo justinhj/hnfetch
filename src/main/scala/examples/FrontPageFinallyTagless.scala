@@ -31,7 +31,7 @@ object FrontPageFinallyTagless {
 
   // Implement parsing using Circe
 
-  val circeParser = new Parsing[IO] {
+  val circeParser: Parsing[IO] = new Parsing[IO] {
     def parse[A](json: String)(implicit D: Decoder[A]) : IO[Either[String, A]] = {
 
       decode[A](json) match {
@@ -53,7 +53,7 @@ object FrontPageFinallyTagless {
       for (
         _ <- L.log(s"Fetching $url");
         result <- H.get(url);
-        _ <- L.log(s"Parsing ${result.size}  bytes");
+        _ <- L.log(s"Parsing ${result.length}  bytes");
         parsed <- P.parse[A](result)
       ) yield parsed
 
@@ -75,7 +75,7 @@ object FrontPageFinallyTagless {
   }
 
   // An implementation of fetch API to string that uses Cats IO and calls the actual API
-  def fetchAPI(ec: ExecutionContext) = new HttpClient[IO] {
+  def fetchAPI(ec: ExecutionContext) : HttpClient[IO] = new HttpClient[IO] {
 
     def get(url: String) : IO[String] = {
       val result = for (
@@ -91,7 +91,7 @@ object FrontPageFinallyTagless {
 
   // This second implementation is used for mocking. The developer maintains a map of url to expected output
   // so we can write unit tests around it
-  val mockFetchAPI = new HttpClient[IO] {
+  val mockFetchAPI : HttpClient[IO] = new HttpClient[IO] {
 
     def get(url: String) : IO[String] = {
 
@@ -106,7 +106,7 @@ object FrontPageFinallyTagless {
   }
 
   // A third implementation uses Id instead IO
-  val idMockFetchAPI = new HttpClient[Id] {
+  val idMockFetchAPI : HttpClient[Id] = new HttpClient[Id] {
 
     def get(url: String) : Id[String] = {
 
@@ -114,7 +114,7 @@ object FrontPageFinallyTagless {
         HNFetch.getMaxItemURL -> "1000"
       )
 
-      (reqResponseMap.getOrElse(url, "not found")).pure[Id]
+      reqResponseMap.getOrElse(url, "not found").pure[Id]
 
     }
 
