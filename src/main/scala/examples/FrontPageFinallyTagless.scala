@@ -1,16 +1,19 @@
 package examples
 
+import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.concurrent.Executors
 
 import cats._
 import cats.effect._
 import cats.implicits._
-import cats.instances._
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
 import justinhj.hnfetch.HNFetch.{HNUser, HNUserID}
 import justinhj.hnfetch._
+
 import scala.concurrent.ExecutionContext
-import scala.reflect.runtime.universe._
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 
 object FrontPageFinallyTagless {
 
@@ -37,7 +40,7 @@ object FrontPageFinallyTagless {
         case Left(err) =>
           IO.pure(Left(err.toString))
       }
-      
+
     }
   }
 
@@ -120,7 +123,10 @@ object FrontPageFinallyTagless {
   val printlnLogging : Logging[IO] = new Logging[IO] {
 
     def log(s: String): IO[Unit] = {
-      IO(println(s))
+      val now : java.util.Date = Calendar.getInstance.getTime
+      val timeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+
+      IO(println(timeFormat.format(now) + ": " + s))
     }
 
   }
