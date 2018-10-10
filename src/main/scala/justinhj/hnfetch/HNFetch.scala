@@ -3,7 +3,6 @@ package justinhj.hnfetch
 import monix.eval.Task
 import scalaj.http.{BaseHttp, HttpConstants, HttpOptions}
 import upickle.default._
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import scala.util.{Failure, Success, Try}
 
 // Get Hacker News items
@@ -53,20 +52,20 @@ object HNFetch {
 
   case class HNItem(
                      id : HNItemID, // The item's unique id.
-                     deleted : Boolean = false, // true if the item is deleted.
+                     deleted : Option[Boolean] = Some(false), // true if the item is deleted.
                      `type` : String, // The type of item. One of "job", "story", "comment", "poll", or "pollopt".
                      by : HNUserID = HNMissingUserID, // The username of the item's author.
                      time : Int, // Creation date of the item, in Unix Time.
                      text : String = "", // The comment, story or poll text. HTML.
-                     dead : Boolean = false, // true if the item is dead.
+                     dead : Option[Boolean] = Some(false), // true if the item is dead.
                      parent : HNItemID = HNMissingItemID, // The comment's parent: either another comment or the relevant story.
-                     poll : HNItemID = HNMissingItemID, // The pollopt's associated poll.
-                     kids : List[HNItemID] = List(), // The ids of the item's comments, in ranked display order.
-                     url : String = "", // The URL of the story.
-                     score : Int = -1, // The story's score, or the votes for a pollopt.
-                     title : String = "", // The title of the story, poll or job.
-                     parts : List[HNItemID] = List(), // A list of related pollopts, in display order.
-                     descendants : Int = 0 // In the case of stories or polls, the total comment count.
+                     poll : Option[HNItemID] = Some(HNMissingItemID), // The pollopt's associated poll.
+                     kids : Option[List[HNItemID]] = Some(List.empty), // The ids of the item's comments, in ranked display order.
+                     url : Option[String] = Some(""), // The URL of the story.
+                     score : Option[Int] = Some(-1), // The story's score, or the votes for a pollopt.
+                     title : Option[String] = Some(""), // The title of the story, poll or job.
+                     parts : Option[List[HNItemID]] = Some(List.empty), // A list of related pollopts, in display order.
+                     descendants : Option[Int] = Some(0) // In the case of stories or polls, the total comment count.
                    )
 
   // Get user details. This is a blocking call

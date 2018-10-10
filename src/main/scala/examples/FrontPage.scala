@@ -34,7 +34,7 @@ object FrontPage {
     getItems(pageOfItems).map {
       _.zipWithIndex.foreach {
         case (Right(item), n) =>
-          println(s"${itemNum(n)}. ${item.title} ${Util.getHostName(item.url)}")
+          println(s"${itemNum(n)}. ${item.title} ${Util.getHostName(item.url.getOrElse("none"))}")
           println(s"  ${item.score} points by ${item.by} at ${Util.timestampToPretty(item.time)} ${item.descendants} comments\n")
         case (Left(err), n) => println(s"${itemNum(n)}. No item (err $err)")
       }
@@ -55,7 +55,7 @@ object FrontPage {
 
     val numItemsPerPage = 10
 
-    val startPage = Try(args(0).toInt).getOrElse(0)
+    //val startPage = Try(args(0).toInt).getOrElse(0)
 
     println("Getting top items")
 
@@ -75,7 +75,7 @@ object FrontPage {
             case "q" =>
             case "" =>
             case s: String =>
-              val page = Try(s.toInt) match {
+              Try(s.toInt) match {
                 case Success(n) =>
                   println(s"Printing page  $n")
 
