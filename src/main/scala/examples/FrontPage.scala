@@ -55,8 +55,6 @@ object FrontPage {
 
     val numItemsPerPage = 10
 
-    //val startPage = Try(args(0).toInt).getOrElse(0)
-
     println("Getting top items")
 
     val scheduler = Scheduler.Implicits.global

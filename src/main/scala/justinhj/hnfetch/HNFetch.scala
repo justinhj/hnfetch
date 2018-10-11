@@ -6,7 +6,7 @@ import upickle.default._
 import scala.util.{Failure, Success, Try}
 
 // Get Hacker News items
-// Uses Scalaj.http and Li Hauyi's uPickle for parsing
+// Uses Scalaj.http and Li Haoyi's uPickle for parsing
 
 object HNFetch {
 
@@ -121,7 +121,11 @@ object HNFetch {
       case Success(response) =>
 
         if (response.code == 200) {
-          Try(read[T](response.body)) match {
+          Try{
+            println(s"parsing ${response.body.take(40)}")
+
+            read[T](response.body)
+        } match {
             case Success(good) if good == null =>
               //println("got empty")
               Left("Not found")
