@@ -42,7 +42,7 @@ object FrontPageWithFetch {
 
       items.zipWithIndex.foreach {
         case (item, n) =>
-          println(s"${itemNum(n)}. ${item.title} ${Util.getHostName(item.url)}")
+          println(s"${itemNum(n)}. ${item.title} ${Util.getHostName(item.url.getOrElse("none"))}")
           println(s"  ${item.score} points by ${item.by} at ${Util.timestampToPretty(item.time)} ${item.descendants} comments\n")
       }
     }

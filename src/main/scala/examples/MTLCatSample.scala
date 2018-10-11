@@ -7,9 +7,12 @@ import cats.mtl._
 import cats.implicits._
 import cats.mtl.implicits._
 
+// Demo of a simple monad stack with Writer, Reader and Either
+
 object MTLCatSample {
 
   case class Cat(name: String, yearOfBirth: Int)
+
   val sampleCat1 = Cat("Binky", 2012)
   val sampleCat2 = Cat("Winky", 1973)
 
@@ -28,8 +31,8 @@ object MTLCatSample {
       name <- aa.ask.map(cat => cat.name);
       year <- aa.ask.map(cat => cat.yearOfBirth);
       _ <- ft.tell(Vector("Calculating age"));
-      age = (2018 - year);
-      _ <- ft.tell(Vector(s"Found the cat called ${name}'s born in $year"));
+      age = 2018 - year;
+      _ <- ft.tell(Vector(s"Found the cat called $name, born in $year"));
       _ <- if(age > 25) fr.raise(s"Cat appears to be too old ($age)") else age.pure[F]
     ) yield age
   }
@@ -40,7 +43,13 @@ object MTLCatSample {
 
     // Note the effect type is IO, it could easily be Id or something else
 
-    val p = program[ReaderT[EitherT[WriterT[IO, Log, ?], String, ?], Cat, ?]]
+    type IOLogWriter[A] = WriterT[IO, Log, A]
+    type IOStringEither[A] = EitherT[IOLogWriter, String, A]
+    type IOCatReader[A] = ReaderT[IOStringEither, Cat, A]
+
+    // Can be written inline as ReaderT[EitherT[WriterT[IO, Log, ?], String, ?], Cat, ?]
+
+    val p = program[IOCatReader]
 
     val (log, eitherResult) = p.run(sampleCat1).value.run.unsafeRunSync
 
@@ -56,7 +65,6 @@ object MTLCatSample {
         
     }
 
-    // (53,Vector(I did it!, You did what?, Found the cat called Garfield's age is 1965))
 
   }
 }
