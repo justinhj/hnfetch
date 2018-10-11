@@ -64,6 +64,7 @@ object FrontPageFinallyTagless {
 
     def getItem(itemID: HNItemID) : F[Either[String, HNItem]] = exec[HNItem](getItemURL(itemID))
 
+    def getTopItems() : F[Either[String, HNItemIDList]] = exec[HNItemIDList](getTopItemsURL)
 
 
   }
@@ -180,13 +181,22 @@ object FrontPageFinallyTagless {
 
     val getJustin = hnAPI.getUser("justinhj")
     val getJustinItem = hnAPI.getItem(11498534)
+    val getTopItems = hnAPI.getTopItems()
 
-    val fetchRealProgram = for (
+    val fetchRealProgram: IO[(Either[String, HNUser], Either[String, HNItem], Either[String, HNItemIDList])] = for (
+      topItems <- getTopItems;
       user <- getJustin;
       item <- getJustinItem
-    ) yield (user, item)
+    ) yield (user, item, topItems)
 
-    println(fetchRealProgram.unsafeRunSync())
+    val results = fetchRealProgram.unsafeRunSync()
+
+    val ops = List(getJustin, getJustinItem, getTopItems)
+
+    val what: IO[List[Either[String, Any]]] = ops.sequence[IO, Either[String, Any]]
+    val runList: List[Either[String, Any]] = what.unsafeRunSync()
+
+    println(s"Found ${results._3.map(_.size)}")
 
     threadPool.shutdown()
 
