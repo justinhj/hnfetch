@@ -47,6 +47,15 @@ object MTLCatSample {
      println(s"Program result was $eitherResult")
      println(log.show)
 
+    val p1 = List(sampleCat1, sampleCat2).traverse(catP => p.run(catP).value.run)
+
+    p1.unsafeRunSync.foreach {
+      case (log, result) =>
+        println(s"Program result was $result")
+        println(log.show)
+        
+    }
+
     // (53,Vector(I did it!, You did what?, Found the cat called Garfield's age is 1965))
 
   }
