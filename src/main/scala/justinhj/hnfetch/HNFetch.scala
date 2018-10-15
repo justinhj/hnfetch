@@ -33,13 +33,15 @@ object HNFetch {
   val HNMissingItemID : HNItemID = -1
   val HNMissingUserID : HNUserID = ""
 
+  trait HNResult
+
   case class HNUser (
                     id : HNUserID, // The user's unique username. Case-sensitive. Required.
                     //delay : Int, // Delay in minutes between a comment's creation and its visibility to other users.
                     created : Int, // Creation date of the user, in Unix Time.
                     karma : Int, // The user's karma.
                     about : String, // The user's optional self-description. HTML.
-                    submitted : List[HNItemID] ) // List of the user's stories, polls and comments.
+                    submitted : List[HNItemID] ) extends HNResult // List of the user's stories, polls and comments.
 
   // These functions construct the url for various api queries
   def getUserURL(userId: HNUserID) = s"${baseHNURL}user/$userId.json"
@@ -66,7 +68,7 @@ object HNFetch {
                      title : Option[String] = Some(""), // The title of the story, poll or job.
                      parts : Option[List[HNItemID]] = Some(List.empty), // A list of related pollopts, in display order.
                      descendants : Option[Int] = Some(0) // In the case of stories or polls, the total comment count.
-                   )
+                   ) extends HNResult
 
   // Get user details. This is a blocking call
   def getUserSync(userID: HNUserID) : Either[String, HNUser] = {

@@ -3,7 +3,7 @@ package examples
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.concurrent.Executors
-
+import scala.util.Try
 import cats._
 import cats.effect._
 import cats.implicits._
@@ -11,6 +11,7 @@ import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
 import justinhj.hnfetch.HNFetch._
+import upickle.default._
 
 import scala.concurrent.ExecutionContext
 
@@ -25,31 +26,48 @@ object FrontPageFinallyTagless {
   }
 
   trait Parsing[F[_]] {
-    def parse[A](json: String)(implicit D: Decoder[A]) : F[Either[String, A]]
+    def parse[A <: HNResult](json: String)(implicit A: Manifest[A]) : F[Either[String, A]]
   }
 
   // Implement parsing using Circe
 
-  val circeParser: Parsing[IO] = new Parsing[IO] {
-    def parse[A](json: String)(implicit D: Decoder[A]) : IO[Either[String, A]] = {
+  // val circeParser: Parsing[IO] = new Parsing[IO] {
+  //   def parse[A](json: String)(implicit D: Decoder[A]) : IO[Either[String, A]] = {
+  //     if(json == "null") Left("Object not found (server returned null)").pure[IO]
+  //     else {
+  //       decode[A](json) match {
+  //         case Right(a) =>
+  //           IO.pure(Right(a))
+  //         case Left(err) =>
+  //           IO.pure(Left(err.toString))
+  //       }
+  //     }
+  //   }
+  // }
 
-      if(json == "null") Left("Object not found (server returned null)").pure[IO]
-      else {
-        decode[A](json) match {
-          case Right(a) =>
-            IO.pure(Right(a))
-          case Left(err) =>
-            IO.pure(Left(err.toString))
-        }
+  // Implement uPickle parser
+
+  //def uJsonRW: upickle.default.ReadWriter[A]
+
+  val uPickleParser : Parsing[IO] = new Parsing[IO] {
+
+    def parse[A](json: String)(implicit ev: Manifest[A]) : IO[Either[String, A]] = {
+
+      val what = Try {
+        upickle.default.read[A](json)
       }
+
+      ???
+
     }
+
   }
 
   // A full Hacker News API Client using tagless final style
   case class HNApi[F[_] : Monad](L : Logging[F], H : HttpClient[F], P : Parsing[F]) {
 
     // All functions are written in terms of this one
-    def exec[A](url: String)(implicit D: Decoder[A]) : F[Either[String, A]] = {
+    def exec[A <: HNResult](url: String)(implicit A: Manifest[A]) : F[Either[String, A]] = {
 
       for (
         _ <- L.log(s"Fetching $url");
@@ -177,13 +195,16 @@ object FrontPageFinallyTagless {
 
     // Get user by ID real API
 
-    val hnAPI = HNApi[IO](printlnLogging, fetchReal, circeParser)
+    //    val hnAPI = HNApi[IO](printlnLogging, fetchReal, circeParser)
+    val hnAPI = HNApi[IO](printlnLogging, fetchReal, uPickleParser)
 
     val getJustin = hnAPI.getUser("justinhj")
     val getJustinItem = hnAPI.getItem(11498534)
     val getTopItems = hnAPI.getTopItems()
 
-    val fetchRealProgram: IO[(Either[String, HNUser], Either[String, HNItem], Either[String, HNItemIDList])] = for (
+    type APIEither[A] = Either[String, A]
+
+    val fetchRealProgram: IO[(APIEither[HNUser], APIEither[HNItem], APIEither[HNItemIDList])] = for (
       topItems <- getTopItems;
       user <- getJustin;
       item <- getJustinItem
