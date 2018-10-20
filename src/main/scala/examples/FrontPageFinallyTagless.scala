@@ -45,8 +45,10 @@ object FrontPageFinallyTagless {
     }
   }
 
-  // A full Hacker News API Client using tagless final style
-  case class HNApi[F[_] : Monad](L : Logging[F], H : HttpClient[F], P : Parsing[F]) {
+  // A full Hacker News API algebra using tagless final style
+  // Note that nothing is implemented here but the methods needed in our
+  // Hacker News API domain
+  class HNApi[F[_] : Monad](L : Logging[F], H : HttpClient[F], P : Parsing[F]) {
 
     // All functions are written in terms of this one
     def exec[A](url: String)(implicit D: Decoder[A]) : F[Either[String, A]] = {
@@ -79,7 +81,7 @@ object FrontPageFinallyTagless {
   }
 
   // An implementation of fetch API to string that uses Cats IO and calls the actual API
-  def fetchAPI(ec: ExecutionContext) : HttpClient[IO] = new HttpClient[IO] {
+  def httpClientIO(ec: ExecutionContext) : HttpClient[IO] = new HttpClient[IO] {
 
     def get(url: String)(L: Logging[IO]) : IO[String] = {
       val result = for (
@@ -93,24 +95,8 @@ object FrontPageFinallyTagless {
 
   }
 
-  // This second implementation is used for mocking. The developer maintains a map of url to expected output
-  // so we can write unit tests around it
-  val mockFetchAPI : HttpClient[IO] = new HttpClient[IO] {
-
-    def get(url: String)(L: Logging[IO]) : IO[String] = {
-
-      val reqResponseMap = Map[String, String](
-        getMaxItemURL -> "1000"
-      )
-
-      IO(reqResponseMap.getOrElse(url, "not found"))
-
-    }
-
-  }
-
-  // A third implementation uses Id instead IO
-  val idMockFetchAPI : HttpClient[Id] = new HttpClient[Id] {
+  // HttpClient implementation uses Id instead IO and can be used for testing and offline development
+  object IdMockFetchAPI extends HttpClient[Id] {
 
     def get(url: String)(L: Logging[Id]) : Id[String] = {
 
@@ -126,6 +112,7 @@ object FrontPageFinallyTagless {
 
   }
 
+  // Logging implementation that logs the time and the provided string
   def printlnLogging[F[_]] : Logging[F] = new Logging[F] {
 
     def log(s: String)(implicit evApp : Applicative[F]): F[Unit] = {
@@ -141,31 +128,15 @@ object FrontPageFinallyTagless {
 
     // Fetch from the real API using IO Monad
 
+    // Requires a threadpool
     val threadPool = Executors.newFixedThreadPool(4)
     val ec = ExecutionContext.fromExecutor(threadPool)
-    val fetchReal = fetchAPI(ec)
 
-    val fetchFromReal = fetch[IO](getMaxItemURL)(fetchReal, printlnLogging)
-
-    // Now run it
-//
-//    val result = fetchFromReal.unsafeRunSync()
-//
-//    println(s"Result:\n$result")
-//
-//    // Run with the IO Monad still but this time use the mock fetch
-//
-//    val fetchFromMock = fetch[IO](getMaxItemURL)(mockFetchAPI, printlnLogging)
-//
-//    // Now run it
-//
-//    val result2 = fetchFromMock.unsafeRunSync()
-//
-//    println(s"Result 2:\n$result2")
+    val fetchAPIInstance = httpClientIO(ec)
 
     // Get top items and a user with the Id API
 
-    val hnAPIId = HNApi[Id](printlnLogging, idMockFetchAPI, circeParser)
+    val hnAPIId = new HNApi[Id](printlnLogging, IdMockFetchAPI, circeParser)
 
     val getJustin1 = hnAPIId.getUser("justinhj")
     val getJustinItem1 = hnAPIId.getItem(11498534)
@@ -182,7 +153,7 @@ object FrontPageFinallyTagless {
     // Get user by ID real API
     // Note the parser and the logger are the same and we've swapped out the http API to use our mock instead
 
-    val hnAPI = HNApi[IO](printlnLogging, fetchReal, circeParser)
+    val hnAPI = new HNApi[IO](printlnLogging, fetchAPIInstance, circeParser)
 
     val getJustin = hnAPI.getUser("justinhj")
     val getJustinItem = hnAPI.getItem(11498534)
@@ -195,11 +166,6 @@ object FrontPageFinallyTagless {
     ) yield (user, item, topItems)
 
     val results = fetchRealProgram.unsafeRunSync()
-
-    //val ops = List(getJustin, getJustinItem, getTopItems)
-
-    //val what: IO[List[Either[String, Any]]] = ops.sequence[IO, Either[String, Any]]
-    //val runList: List[Either[String, Any]] = what.unsafeRunSync()
 
     println(s"Found ${results._3.map(_.size)}")
 
