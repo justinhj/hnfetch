@@ -1,6 +1,7 @@
 package justinhj.hnfetch
 
-import monix.eval.Task
+import scalaz.zio.Task
+import scalaz.zio.interop.catz.implicits._
 import scalaj.http.{BaseHttp, HttpConstants, HttpOptions}
 import upickle.default._
 

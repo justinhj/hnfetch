@@ -1,37 +1,36 @@
 package examples
 
-import cats.instances.list._
-import cats.syntax.traverse._
-import fetch._
-import fetch.monixTask.implicits._
-import fetch.syntax._
+import cats.effect.ConcurrentEffect
+import fetch.Fetch
 import justinhj.hnfetch.HNDataSources
 import justinhj.hnfetch.HNFetch._
-import monix.eval.Task
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
 import scala.io.StdIn.readLine
 import scala.util.Try
+import scalaz.zio.{DefaultRuntime, Task}
+import scalaz.zio.interop.catz.implicits._
+import scalaz.zio.interop.catz._
 
 object FrontPageWithFetch {
 
   // Fetch a page of Hacker News items with optional cache from a previous call
-  def fetchPage(startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: Option[DataSourceCache] = None):
-    Task[(FetchEnv, List[HNItem])] = {
-
-    val pageOfItems = hNItemIDList.slice(startPage * numItemsPerPage, startPage * numItemsPerPage + numItemsPerPage)
-
-    val fetchItems = pageOfItems.traverse(HNDataSources.getItem)
-
-    cache match {
-      case Some(c) =>
-        fetchItems.runF[Task](c)
-      case None =>
-        fetchItems.runF[Task]
-    }
-
-  }
+//  def fetchPage[F[_]](startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: Option[DataCache[F]] = None) :
+//    Task[(FetchEnv, List[HNItem])] = {
+//
+//    val pageOfItems = hNItemIDList.slice(startPage * numItemsPerPage, startPage * numItemsPerPage + numItemsPerPage)
+//
+//    //val ass = Fetch.runCache[Task](fetchUser)
+//
+//    val fetchItems = pageOfItems.map(HNDataSources.getItem)
+//
+//    cache match {
+//      case Some(c) =>
+//        fetchItems.run[Task](c)
+//      case None =>
+//        fetchItems.runF[Task]
+//    }
+//
+//  }
 
   // Print a page of fetched items
   def printPageItems(startPage: Int, numItemsPerPage: Int, items: List[HNItem]): Task[Unit] = {
@@ -77,44 +76,64 @@ object FrontPageWithFetch {
     page <- getNumericInput
   ) yield page
 
-  def showPagesLoop(topItems: HNItemIDList, cache: Option[DataSourceCache]): Task[Option[DataSourceCache]] =
-
-  // Here we will show the page of items or exit if the user didn't enter a number
-    getUserPage.flatMap {
-
-      case Some(page) =>
-        println(s"fetch page $page")
-
-        for (
-          fetchResult <- fetchPage(page, numItemsPerPage, topItems, cache);
-          (env, items) = fetchResult;
-          _ = println(s"${env.rounds.size} fetch rounds");
-          _ <- printPageItems(page, numItemsPerPage, items);
-          newCache <- showPagesLoop(topItems, Some(env.cache))
-        ) yield newCache
-
-
-      case None =>
-        Task.now(cache)
-    }
+//  def showPagesLoop(topItems: HNItemIDList, cache: Option[DataSourceCache]): Task[Option[DataSourceCache]] =
+//
+//  // Here we will show the page of items or exit if the user didn't enter a number
+//    getUserPage.flatMap {
+//
+//      case Some(page) =>
+//        println(s"fetch page $page")
+//
+//        for (
+//          fetchResult <- fetchPage(page, numItemsPerPage, topItems, cache);
+//          (env, items) = fetchResult;
+//          _ = println(s"${env.rounds.size} fetch rounds");
+//          _ <- printPageItems(page, numItemsPerPage, items);
+//          newCache <- showPagesLoop(topItems, Some(env.cache))
+//        ) yield newCache
+//
+//
+//      case None =>
+//        Task.now(cache)
+//    }
 
   // Set a fixed size pool with a small number of threads so we can be nice to the Hacker News servers by
   // limiting the number of concurrent requests
-  val scheduler = monix.execution.Scheduler.fixedPool("monix-pool", 4, true)
+  //val scheduler = monix.execution.Scheduler.fixedPool("monix-pool", 4, true)
 
   def main(args : Array[String]) : Unit = {
 
     // Finally the main program consists of getting the list of top item IDs and then calling the loop ...
 
-    val program = getTopItems().flatMap {
-      case Right(items) =>
-        showPagesLoop(items, None)
-      case Left(err) =>
-        printError(err)
-    }
+    implicit val runtime = new DefaultRuntime {}
 
-    val ran = program.runAsync(scheduler)
-    Await.result(ran, Duration.Inf)
+    val itemID = 13867316
+
+    implicit val ec = runtime.Platform.executor
+
+    val ass : Task[Unit] = runtime.Environment.console.putStrLn("ass")
+
+    //val ass2 = ass.concurrentEffect
+
+    //scalaz.zio.interop-cats.instances
+
+    runtime.unsafeRun(ass)
+
+    val fetchItem = HNDataSources.getItem[Task](itemID)
+//
+    val run = Fetch.run[Task](fetchItem)
+
+    runtime.unsafeRun(run)
+
+//    val program = getTopItems().flatMap {
+//      case Right(items) =>
+//        showPagesLoop(items, None)
+//      case Left(err) =>
+//        printError(err)
+//    }
+//
+//    val ran = program.runAsync(scheduler)
+//    Await.result(ran, Duration.Inf)
 
   }
 
