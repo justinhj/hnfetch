@@ -1,7 +1,7 @@
 package examples
 
 import cats.effect.ConcurrentEffect
-import fetch.Fetch
+import fetch.{DataCache, Fetch, InMemoryCache}
 import justinhj.hnfetch.HNDataSources
 import justinhj.hnfetch.HNFetch._
 
@@ -10,27 +10,30 @@ import scala.util.Try
 import scalaz.zio.{DefaultRuntime, Task}
 import scalaz.zio.interop.catz.implicits._
 import scalaz.zio.interop.catz._
+import scalaz.zio.console.{putStrLn, _}
+import scalaz.syntax.traverse.ToTraverseOps
+import scalaz.std.list.listInstance
+
 
 object FrontPageWithFetch {
 
   // Fetch a page of Hacker News items with optional cache from a previous call
-//  def fetchPage[F[_]](startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: Option[DataCache[F]] = None) :
-//    Task[(FetchEnv, List[HNItem])] = {
-//
-//    val pageOfItems = hNItemIDList.slice(startPage * numItemsPerPage, startPage * numItemsPerPage + numItemsPerPage)
-//
-//    //val ass = Fetch.runCache[Task](fetchUser)
-//
-//    val fetchItems = pageOfItems.map(HNDataSources.getItem)
-//
-//    cache match {
-//      case Some(c) =>
-//        fetchItems.run[Task](c)
-//      case None =>
-//        fetchItems.runF[Task]
-//    }
-//
-//  }
+  def fetchPage[F[_] : ConcurrentEffect](startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: DataCache[F]) :
+    F[(DataCache[F], List[HNItem])] = {
+
+    val pageOfItems = hNItemIDList.slice(startPage * numItemsPerPage, startPage * numItemsPerPage + numItemsPerPage)
+
+    //val ass = Fetch.runCache[Task](fetchUser)
+
+    val fetchItems: List[Fetch[F, HNItem]] = pageOfItems.map(HNDataSources.getItem[F])
+    val fetchItem = HNDataSources.getItem[F](12)
+
+   // val fetchItems2: Fetch[F, List[HNItem]] = pageOfItems.traverse(HNDataSources.getItem[F])
+
+    val ass = Fetch.runCache[F](fetchItem, cache)
+
+    ???
+  }
 
   // Print a page of fetched items
   def printPageItems(startPage: Int, numItemsPerPage: Int, items: List[HNItem]): Task[Unit] = {
@@ -76,26 +79,30 @@ object FrontPageWithFetch {
     page <- getNumericInput
   ) yield page
 
-//  def showPagesLoop(topItems: HNItemIDList, cache: Option[DataSourceCache]): Task[Option[DataSourceCache]] =
-//
-//  // Here we will show the page of items or exit if the user didn't enter a number
-//    getUserPage.flatMap {
-//
-//      case Some(page) =>
-//        println(s"fetch page $page")
-//
-//        for (
-//          fetchResult <- fetchPage(page, numItemsPerPage, topItems, cache);
-//          (env, items) = fetchResult;
-//          _ = println(s"${env.rounds.size} fetch rounds");
-//          _ <- printPageItems(page, numItemsPerPage, items);
-//          newCache <- showPagesLoop(topItems, Some(env.cache))
-//        ) yield newCache
-//
-//
-//      case None =>
-//        Task.now(cache)
-//    }
+  def showPagesLoop[Task : ConcurrentEffect](topItems: HNItemIDList, cache: DataCache[Task]): Task[DataCache[Task]] =
+
+    // Here we will show the page of items or exit if the user didn't enter a number
+    getUserPage.flatMap {
+
+      case Some(page) =>
+        println(s"fetch page $page")
+
+        val t1 = for (
+          fetchResult <- fetchPage(page, numItemsPerPage, topItems, cache);
+          (cache, items) = fetchResult;
+          //_ = println(s"${env.rounds.size} fetch rounds");
+          _ <- printPageItems(page, numItemsPerPage, items);
+          newCache <- showPagesLoop(topItems, cache)
+        ) yield newCache
+
+        t1
+
+      case None =>
+        Task.succeed(cache)
+    }
+
+
+
 
   // Set a fixed size pool with a small number of threads so we can be nice to the Hacker News servers by
   // limiting the number of concurrent requests
@@ -111,19 +118,16 @@ object FrontPageWithFetch {
 
     implicit val ec = runtime.Platform.executor
 
-    val ass : Task[Unit] = runtime.Environment.console.putStrLn("ass")
-
-    //val ass2 = ass.concurrentEffect
-
-    //scalaz.zio.interop-cats.instances
-
-    runtime.unsafeRun(ass)
-
     val fetchItem = HNDataSources.getItem[Task](itemID)
-//
-    val run = Fetch.run[Task](fetchItem)
 
-    runtime.unsafeRun(run)
+    val cache = InMemoryCache.from[Task, HNItemID, HNItem]()
+
+    val f1 = Fetch.runCache[Task](fetchItem, cache).flatMap {
+      case (_, item) =>
+        putStrLn(s"Item author ${item.by}")
+    }
+
+    runtime.unsafeRun(f1)
 
 //    val program = getTopItems().flatMap {
 //      case Right(items) =>
