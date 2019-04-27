@@ -16,6 +16,10 @@ import scala.concurrent.ExecutionContext
 
 object FrontPageFinallyTagless {
 
+  // Define the error type for the application, we'll just use string
+  type Error = String
+  type EitherError[A] = Either[String, A]
+
   trait Logging[F[_]] {
     def log(s : String)(implicit evApp : Applicative[F]) : F[Unit]
   }
@@ -25,13 +29,13 @@ object FrontPageFinallyTagless {
   }
 
   trait Parsing[F[_]] {
-    def parse[A](json: String)(implicit D: Decoder[A], evApp : Applicative[F]) : F[Either[String, A]]
+    def parse[A](json: String)(implicit D: Decoder[A], evApp : Applicative[F]) : F[EitherError[A]]
   }
 
   // Implement parsing using Circe
 
   def circeParser[F[_]]: Parsing[F] = new Parsing[F] {
-    def parse[A](json: String)(implicit D: Decoder[A], evApp : Applicative[F]) : F[Either[String, A]] = {
+    def parse[A](json: String)(implicit D: Decoder[A], evApp : Applicative[F]) : F[EitherError[A]] = {
 
       if(json == "null") evApp.pure(Left("Object not found (server returned null)"))
       else {
@@ -51,7 +55,7 @@ object FrontPageFinallyTagless {
   class HNApi[F[_] : Monad](L : Logging[F], H : HttpClient[F], P : Parsing[F]) {
 
     // All functions are written in terms of this one
-    def exec[A](url: String)(implicit D: Decoder[A]) : F[Either[String, A]] = {
+    def exec[A](url: String)(implicit D: Decoder[A]) : F[EitherError[A]] = {
 
       for (
         _ <- L.log(s"Fetching $url");
