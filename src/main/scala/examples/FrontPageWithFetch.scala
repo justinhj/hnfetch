@@ -1,6 +1,5 @@
 package examples
 
-import cats.effect.ConcurrentEffect
 import fetch.{DataCache, Fetch, InMemoryCache}
 import justinhj.hnfetch.HNDataSources
 import justinhj.hnfetch.HNFetch._
@@ -11,26 +10,50 @@ import scalaz.zio.{DefaultRuntime, Task}
 import scalaz.zio.interop.catz.implicits._
 import scalaz.zio.interop.catz._
 import scalaz.zio.console.{putStrLn, _}
-import scalaz.syntax.traverse.ToTraverseOps
-import scalaz.std.list.listInstance
-
+import scalaz._, Scalaz._
 
 object FrontPageWithFetch {
 
+  implicit val runtime = new DefaultRuntime {}
+
   // Fetch a page of Hacker News items with optional cache from a previous call
-  def fetchPage[F[_] : ConcurrentEffect](startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: DataCache[F]) :
-    F[(DataCache[F], List[HNItem])] = {
+  def fetchPage(startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: DataCache[Task]) :
+    Task[(DataCache[Task], List[HNItem])] = {
 
     val pageOfItems = hNItemIDList.slice(startPage * numItemsPerPage, startPage * numItemsPerPage + numItemsPerPage)
 
     //val ass = Fetch.runCache[Task](fetchUser)
 
-    val fetchItems: List[Fetch[F, HNItem]] = pageOfItems.map(HNDataSources.getItem[F])
-    val fetchItem = HNDataSources.getItem[F](12)
+    val fetchItems: List[Fetch[Task, HNItem]] = pageOfItems.map(HNDataSources.getItem[Task])
+    val fetchItem: Fetch[Task, HNItem] = HNDataSources.getItem[Task](12)
 
-   // val fetchItems2: Fetch[F, List[HNItem]] = pageOfItems.traverse(HNDataSources.getItem[F])
+    // G[_], B => ItemID -> G[B] : G[List[B]] needs applicative in List[B]
+    // Fetch[Task, HNItem]
 
-    val ass = Fetch.runCache[F](fetchItem, cache)
+    // F[A], 	A => G[B], 	G[F[B]]
+    // List[Option[Int]], Option[List[Int]]
+
+    // Sample traverse
+//    val t1 = List(1.some,2.some,3.some).traverse{
+//      case Some(a) => Some(a + 1)
+//      case None => None
+//    }
+//    println(t1)
+
+//    object ApplicativeFetch extends Applicative[F[_]] {
+//
+//    }
+
+
+    def intTask(n: Int) = Task.succeed(n)
+
+    val l1 = List(1,2,3).traverse(intTask)
+
+
+
+    //val fetchItems2 = pageOfItems.traverse(id => HNDataSources.getItem[Task](id))
+
+    val ass = Fetch.runCache[Task](fetchItem, cache)
 
     ???
   }
@@ -79,7 +102,7 @@ object FrontPageWithFetch {
     page <- getNumericInput
   ) yield page
 
-  def showPagesLoop[Task : ConcurrentEffect](topItems: HNItemIDList, cache: DataCache[Task]): Task[DataCache[Task]] =
+  def showPagesLoop(topItems: HNItemIDList, cache: DataCache[Task]): Task[DataCache[Task]] =
 
     // Here we will show the page of items or exit if the user didn't enter a number
     getUserPage.flatMap {
@@ -112,11 +135,9 @@ object FrontPageWithFetch {
 
     // Finally the main program consists of getting the list of top item IDs and then calling the loop ...
 
-    implicit val runtime = new DefaultRuntime {}
-
     val itemID = 13867316
 
-    implicit val ec = runtime.Platform.executor
+    //implicit val ec = runtime.Platform.executor
 
     val fetchItem = HNDataSources.getItem[Task](itemID)
 
@@ -129,12 +150,14 @@ object FrontPageWithFetch {
 
     runtime.unsafeRun(f1)
 
-//    val program = getTopItems().flatMap {
-//      case Right(items) =>
-//        showPagesLoop(items, None)
-//      case Left(err) =>
-//        printError(err)
-//    }
+    val program = getTopItems().flatMap {
+      case Right(items) =>
+        showPagesLoop(items, cache)
+      case Left(err) =>
+        printError(err)
+    }
+
+    runtime.unsafeRun(program)
 //
 //    val ran = program.runAsync(scheduler)
 //    Await.result(ran, Duration.Inf)
