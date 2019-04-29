@@ -2,7 +2,20 @@ name := "hnfetch"
 
 version := "1.0"
 
-scalaVersion := "2.12.2"
+scalaVersion := "2.12.8"
+
+scalacOptions ++= Seq(
+  "-deprecation"
+  , "-unchecked"
+  , "-encoding", "UTF-8"
+  , "-Xlint"
+  , "-Xverify"
+  , "-feature"
+  ,"-Ypartial-unification"
+  //,"-Xfatal-warnings"
+  , "-language:_"
+  //,"-optimise"
+)
 
 val fetchVersion = "1.0.0"
 val ScalaZVersion = "7.3.0-M28"
@@ -17,8 +30,32 @@ libraryDependencies ++= Seq(
   "com.lihaoyi" %% "upickle" % "0.4.4",
   "org.ocpsoft.prettytime" % "prettytime" % "3.2.7.Final",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-  "com.lihaoyi" % "ammonite" % "1.0.0" % "test" cross CrossVersion.full
 )
+
+libraryDependencies += {
+  val version = scalaBinaryVersion.value match {
+    case "2.10" => "1.0.3"
+    case _ ⇒ "1.6.6"
+  }
+  "com.lihaoyi" % "ammonite" % version % "test" cross CrossVersion.full
+}
+
+sourceGenerators in Test += Def.task {
+  val file = (sourceManaged in Test).value / "amm.scala"
+  IO.write(file, """object amm extends App { ammonite.Main.main(args) }""")
+  Seq(file)
+}.taskValue
+
+// Optional, required for the `source` command to work
+(fullClasspath in Test) ++= {
+  (updateClassifiers in Test).value
+    .configurations
+    .find(_.configuration == Test.name)
+    .get
+    .modules
+    .flatMap(_.artifacts)
+    .collect{case (a, f) if a.classifier == Some("sources") => f}
+}
 
 sourceGenerators in Test += Def.task {
   val file = (sourceManaged in Test).value / "amm.scala"
