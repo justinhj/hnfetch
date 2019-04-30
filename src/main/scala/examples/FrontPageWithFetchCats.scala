@@ -8,12 +8,13 @@ import scala.concurrent._
 import java.util.concurrent._
 
 import scala.concurrent.duration._
-import cats._
 import cats.effect._
 import cats.instances.list._
 import cats.data.NonEmptyList
 import cats.syntax.all._
 import fetch._
+
+import scala.io.StdIn._
 
 import scala.util.Try
 
@@ -36,12 +37,16 @@ object One extends Data[Int, Int] {
         ids.toList.map((v) => (v, v)).toMap
       )
   }
+
+  def one[F[_] : ConcurrentEffect](id: Int): Fetch[F, Int] =
+    Fetch(id, One.source)
+  def fetch[F[_] : ConcurrentEffect]: Fetch[F, List[Int]] =
+    List(1,2,3).traverse(a => one(a))
 }
 
 
 object FrontPageWithFetchCats {
 
-  import HNDataSources._
 
   val executor = new ScheduledThreadPoolExecutor(4)
   val executionContext: ExecutionContext = ExecutionContext.fromExecutor(executor)
@@ -49,27 +54,25 @@ object FrontPageWithFetchCats {
   implicit val timer: Timer[IO] = IO.timer(executionContext)
   implicit val cs: ContextShift[IO] = IO.contextShift(executionContext)
 
-  def one[F[_] : ConcurrentEffect](id: Int): Fetch[F, Int] =
-    Fetch(id, One.source)
+
+  import HNDataSources._
+
 
 
 //  def fetchTraverse[F[_] : ConcurrentEffect](items : List[HNItemID]) : Fetch[F, List[HNItem]] =
 //    items.traverse(getItem[F])
 
-  def fetch[F[_] : ConcurrentEffect]: Fetch[F, List[Int]] =
-    List(1,2,3).traverse(a => one(a))
+
 
 
   // Fetch a page of Hacker News items with optional cache from a previous call
-  def fetchPage[F[_] : ConcurrentEffect](startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: DataCache[F]) : F[(DataCache[F], List[HNItem])] = {
+  def fetchPage(startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: DataCache[IO]) : IO[(DataCache[IO], List[HNItem])] = {
 
     val pageOfItems = hNItemIDList.slice(startPage * numItemsPerPage, startPage * numItemsPerPage + numItemsPerPage)
 
-//    val fetchItems = pageOfItems.traverse(getItem[F])
-//
-//    Fetch.runCache(fetchItems, cache)
+    val fetchItems: Fetch[IO, List[HNItem]] = pageOfItems.traverse(getItem[IO])
 
-    ???
+    Fetch.runCache[IO](fetchItems, cache)
   }
 
   def printError(err: String) = IO {
@@ -77,40 +80,39 @@ object FrontPageWithFetchCats {
   }
 
   // Print a page of fetched items
-  def printPageItems[F[_] : ConcurrentEffect](startPage: Int, numItemsPerPage: Int, items: List[HNItem]) = {
+  def printPageItems(startPage: Int, numItemsPerPage: Int, items: List[HNItem]) = {
     // helper to show the article rank
     def itemNum(n: Int) = (startPage * numItemsPerPage) + n + 1
 
-    Sync[F].delay {
-
-      items.zipWithIndex.foreach {
-        case (item, n) =>
-          println(s"${itemNum(n)}. ${item.title} ${Util.getHostName(item.url)}")
-          println(s"  ${item.score} points by ${item.by} at ${Util.timestampToPretty(item.time)} ${item.descendants} comments\n")
-      }
+      IO(
+        items.zipWithIndex.foreach {
+          case (item, n) =>
+           println(s"${itemNum(n)}. ${item.title} ${Util.getHostName(item.url)}")
+            println(s"  ${item.score} points by ${item.by} at ${Util.timestampToPretty(item.time)} ${item.descendants} comments\n")
+        })
     }
-  }
+
 
   // Simple input and output is encoded as Monix Task so we can compose all the pieces
   // to get the final
-  def promptInput[F[_] : ConcurrentEffect] = Sync[F].delay {
+  def promptInput = IO {
     println("Enter a page number to fetch a page of news items or anything else to quit: ")
   }
 
-  def getNumericInput[F[_] : ConcurrentEffect] = Sync[F].delay {
+  def getNumericInput = IO {
     Try {
       val input = readLine()
       input.toInt
     }.toOption
   }
 
-  def printTopItemCount[F[_] : ConcurrentEffect](topItems: HNItemIDList) = Sync[F].delay {
+  def printTopItemCount[F[_] : ConcurrentEffect](topItems: HNItemIDList) = IO {
     println(s"Got ${topItems.size} items")
   }
 
   val numItemsPerPage = 10
 
-  def getUserPage[F[_] : ConcurrentEffect] : F[Option[Int]] = for (
+  def getUserPage : IO[Option[HNItemID]] = for (
     _ <- promptInput;
     page <- getNumericInput
   ) yield page
@@ -118,11 +120,11 @@ object FrontPageWithFetchCats {
   def showPagesLoop(topItems: HNItemIDList, cache: DataCache[IO]) : IO[DataCache[IO]] =
 
   // Here we will show the page of items or exit if the user didn't enter a number
-    getUserPage[IO].flatMap {
+    getUserPage.flatMap {
 
       case Some(page) =>
 
-        for (
+        val what = for (
           //_ <- IO.pure(println(s"fetch page $page"));
           fetchResult <- fetchPage(page, numItemsPerPage, topItems, cache);
           (cache, items) = fetchResult;
@@ -130,6 +132,8 @@ object FrontPageWithFetchCats {
           _ <- printPageItems(page, numItemsPerPage, items);
           newCache <- showPagesLoop(topItems, cache)
         ) yield newCache
+
+        what
 
       case None =>
         IO.pure(cache)
@@ -140,6 +144,8 @@ object FrontPageWithFetchCats {
   //val scheduler = monix.execution.Scheduler.fixedPool("monix-pool", 4, true)
 
   def main(args : Array[String]) : Unit = {
+
+
 
     // Finally the main program consists of getting the list of top item IDs and then calling the loop ...
 
@@ -155,14 +161,16 @@ object FrontPageWithFetchCats {
 //    }
 
     val wassup = Fetch.runCache[IO](HNDataSources.getItem(itemID), cache).unsafeRunTimed(5.seconds)
-    wassup.map{case (c, a) => println(s"got it ${a}")}
+    wassup.foreach{case (c, a) => println(s"got it $a")}
 
-    def program[IO[_] : ConcurrentEffect] = getTopItems().flatMap {
+    val program = getTopItems[IO]().flatMap {
       case Right(items) =>
         showPagesLoop(items, cache)
       case Left(err) =>
         printError(err)
     }
+
+    program.unsafeRunSync()
 //
 //    runtime.unsafeRun(program)
     //

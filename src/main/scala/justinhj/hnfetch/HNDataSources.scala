@@ -1,9 +1,8 @@
 package justinhj.hnfetch
 
-import cats.effect.{ConcurrentEffect, SyncIO}
+import cats.effect.ConcurrentEffect
 import fetch.{Data, DataSource, Fetch}
 import justinhj.hnfetch.HNFetch.{HNItem, HNItemID, HNUser, HNUserID}
-
 import scala.language.postfixOps
 
 object HNDataSources {

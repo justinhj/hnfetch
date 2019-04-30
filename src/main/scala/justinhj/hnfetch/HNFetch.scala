@@ -1,9 +1,9 @@
 package justinhj.hnfetch
 
-import scalaz.zio.Task
-import scalaz.zio.interop.catz.implicits._
+import cats.effect.ConcurrentEffect
 import scalaj.http.{BaseHttp, HttpConstants, HttpOptions}
 import upickle.default._
+import cats.effect._
 
 import scala.util.{Failure, Success, Try}
 
@@ -76,8 +76,8 @@ object HNFetch {
     hnRequestSync[HNUser](url)
   }
 
-  // getUser via a Monix Task
-  def getUser(userID: HNUserID) : Task[Either[String, HNUser]] = Task(getUserSync(userID))
+  def getUser[F[_] : ConcurrentEffect](userID: HNUserID) : F[Either[String, HNUser]] =
+    Sync[F].delay(getUserSync(userID))
 
   // Get Item details. This is a blocking call
   def getItemSync(itemId: HNItemID) : Either[String, HNItem] = {
@@ -87,7 +87,7 @@ object HNFetch {
   }
 
   // getItem via a Monix Task
-  def getItem(itemId: HNItemID) : Task[Either[String, HNItem]] = Task(getItemSync(itemId))
+  def getItem[F[_] : ConcurrentEffect](itemId: HNItemID) : F[Either[String, HNItem]] = Sync[F].delay(getItemSync(itemId))
 
   type HNItemIDList = List[HNItemID]
 
@@ -96,7 +96,7 @@ object HNFetch {
     hnRequestSync[HNItemIDList](getTopItemsURL)
   }
 
-  def getTopItems(): Task[Either[String, HNItemIDList]] = Task {
+  def getTopItems[F[_] : ConcurrentEffect](): F[Either[String, HNItemIDList]] = Sync[F].delay {
     hnRequestSync[HNItemIDList](getTopItemsURL)
   }
 
@@ -107,7 +107,7 @@ object HNFetch {
     hnRequestSync[HNItemID](getMaxItemURL)
   }
 
-  def getMaxItem(): Task[Either[String, HNItemID]] = Task {
+  def getMaxItem[F[_] : ConcurrentEffect](): F[Either[String, HNItemID]] = Sync[F].delay {
     hnRequestSync[HNItemID](getMaxItemURL)
   }
 
