@@ -1,69 +1,35 @@
 package examples
 
+import cats.effect._
+import cats.instances.list._
+import cats.syntax.all._
 import fetch._
 import justinhj.hnfetch.HNDataSources
 import justinhj.hnfetch.HNFetch._
 
 import scala.concurrent._
-import java.util.concurrent._
-
-import scala.concurrent.duration._
-import cats.effect._
-import cats.instances.list._
-import cats.data.NonEmptyList
-import cats.syntax.all._
-import fetch._
-
 import scala.io.StdIn._
-
-import scala.util.Try
-
 import scala.language.higherKinds
-
-
-object One extends Data[Int, Int] {
-  def name = "One"
-
-  def source[F[_] : ConcurrentEffect]: DataSource[F, Int, Int] = new DataSource[F, Int, Int] {
-    override def data = One
-
-    override def CF = ConcurrentEffect[F]
-
-    override def fetch(id: Int): F[Option[Int]] =
-      CF.pure(Option(id))
-
-    override def batch(ids: NonEmptyList[Int]): F[Map[Int, Int]] =
-      CF.pure(
-        ids.toList.map((v) => (v, v)).toMap
-      )
-  }
-
-  def one[F[_] : ConcurrentEffect](id: Int): Fetch[F, Int] =
-    Fetch(id, One.source)
-  def fetch[F[_] : ConcurrentEffect]: Fetch[F, List[Int]] =
-    List(1,2,3).traverse(a => one(a))
-}
-
+import scala.util.Try
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
 
 object FrontPageWithFetchCats {
 
+  val executor = Executors.newFixedThreadPool(4, new ThreadFactory() {
+    override def newThread(r: Runnable): Thread = {
+      val t = Executors.defaultThreadFactory.newThread(r)
+      t.setDaemon(true)
+      t
+    }
+  })
 
-  val executor = new ScheduledThreadPoolExecutor(4)
-  val executionContext: ExecutionContext = ExecutionContext.fromExecutor(executor)
+  implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutor(executor)
 
   implicit val timer: Timer[IO] = IO.timer(executionContext)
   implicit val cs: ContextShift[IO] = IO.contextShift(executionContext)
 
-
   import HNDataSources._
-
-
-
-//  def fetchTraverse[F[_] : ConcurrentEffect](items : List[HNItemID]) : Fetch[F, List[HNItem]] =
-//    items.traverse(getItem[F])
-
-
-
 
   // Fetch a page of Hacker News items with optional cache from a previous call
   def fetchPage(startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: DataCache[IO]) : IO[(DataCache[IO], List[HNItem])] = {
@@ -84,14 +50,13 @@ object FrontPageWithFetchCats {
     // helper to show the article rank
     def itemNum(n: Int) = (startPage * numItemsPerPage) + n + 1
 
-      IO(
-        items.zipWithIndex.foreach {
-          case (item, n) =>
-           println(s"${itemNum(n)}. ${item.title} ${Util.getHostName(item.url)}")
-            println(s"  ${item.score} points by ${item.by} at ${Util.timestampToPretty(item.time)} ${item.descendants} comments\n")
-        })
-    }
-
+    IO(
+      items.zipWithIndex.foreach {
+        case (item, n) =>
+         println(s"${itemNum(n)}. ${item.title} ${Util.getHostName(item.url)} ${item.url}")
+          println(s"  ${item.score} points by ${item.by} at ${Util.timestampToPretty(item.time)} ${item.descendants} comments\n")
+      })
+  }
 
   // Simple input and output is encoded as Monix Task so we can compose all the pieces
   // to get the final
@@ -110,12 +75,12 @@ object FrontPageWithFetchCats {
     println(s"Got ${topItems.size} items")
   }
 
-  val numItemsPerPage = 10
-
   def getUserPage : IO[Option[HNItemID]] = for (
     _ <- promptInput;
     page <- getNumericInput
   ) yield page
+
+  val numItemsPerPage = 10
 
   def showPagesLoop(topItems: HNItemIDList, cache: DataCache[IO]) : IO[DataCache[IO]] =
 
@@ -139,29 +104,9 @@ object FrontPageWithFetchCats {
         IO.pure(cache)
     }
 
-  // Set a fixed size pool with a small number of threads so we can be nice to the Hacker News servers by
-  // limiting the number of concurrent requests
-  //val scheduler = monix.execution.Scheduler.fixedPool("monix-pool", 4, true)
-
   def main(args : Array[String]) : Unit = {
 
-
-
-    // Finally the main program consists of getting the list of top item IDs and then calling the loop ...
-
-    val itemID = 13867316
-
-    //implicit val ec = runtime.Platform.executor
-
     val cache = InMemoryCache.from[IO, HNItemID, HNItem]()
-
-//    val f1 = Fetch.runCache[Task](fetchItem, cache).flatMap {
-//      case (_, item) =>
-//        putStrLn(s"Item author ${item.by}")
-//    }
-
-    val wassup = Fetch.runCache[IO](HNDataSources.getItem(itemID), cache).unsafeRunTimed(5.seconds)
-    wassup.foreach{case (c, a) => println(s"got it $a")}
 
     val program = getTopItems[IO]().flatMap {
       case Right(items) =>
@@ -171,12 +116,6 @@ object FrontPageWithFetchCats {
     }
 
     program.unsafeRunSync()
-//
-//    runtime.unsafeRun(program)
-    //
-    //    val ran = program.runAsync(scheduler)
-    //    Await.result(ran, Duration.Inf)
-
   }
 
 }
