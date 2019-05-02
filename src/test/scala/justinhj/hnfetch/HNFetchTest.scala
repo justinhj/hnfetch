@@ -6,8 +6,6 @@ import org.scalatest._
 class HNFetchTest extends AsyncFlatSpec with Matchers with OptionValues with Inside with Inspectors {
 
 //  implicit val scheduler = Scheduler.Implicits.global
-
-
 //  "HNFetch" should "be able to fetch the top news stories" in {
 //
 //    HNFetch.getTopItems().runAsync.map {
@@ -34,6 +32,5 @@ class HNFetchTest extends AsyncFlatSpec with Matchers with OptionValues with Ins
 //      case Left(err) => fail
 //    }
 //  }
-
 
 }

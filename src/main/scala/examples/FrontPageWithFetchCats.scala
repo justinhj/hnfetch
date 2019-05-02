@@ -26,13 +26,18 @@ object FrontPageWithFetchCats {
 
   implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutor(executor)
 
-  implicit val timer: Timer[IO] = IO.timer(executionContext)
+  implicit val timer: Timer[IO]     = IO.timer(executionContext)
   implicit val cs: ContextShift[IO] = IO.contextShift(executionContext)
 
   import HNDataSources._
 
   // Fetch a page of Hacker News items with optional cache from a previous call
-  def fetchPage(startPage: Int, numItemsPerPage: Int, hNItemIDList: HNItemIDList, cache: DataCache[IO]) : IO[(DataCache[IO], List[HNItem])] = {
+  def fetchPage(
+    startPage: Int,
+    numItemsPerPage: Int,
+    hNItemIDList: HNItemIDList,
+    cache: DataCache[IO]
+  ): IO[(DataCache[IO], List[HNItem])] = {
 
     val pageOfItems = hNItemIDList.slice(startPage * numItemsPerPage, startPage * numItemsPerPage + numItemsPerPage)
 
@@ -50,12 +55,13 @@ object FrontPageWithFetchCats {
     // helper to show the article rank
     def itemNum(n: Int) = (startPage * numItemsPerPage) + n + 1
 
-    IO(
-      items.zipWithIndex.foreach {
-        case (item, n) =>
-         println(s"${itemNum(n)}. ${item.title} ${Util.getHostName(item.url)} ${item.url}")
-          println(s"  ${item.score} points by ${item.by} at ${Util.timestampToPretty(item.time)} ${item.descendants} comments\n")
-      })
+    IO(items.zipWithIndex.foreach {
+      case (item, n) =>
+        println(s"${itemNum(n)}. ${item.title} ${Util.getHostName(item.url)} ${item.url}")
+        println(
+          s"  ${item.score} points by ${item.by} at ${Util.timestampToPretty(item.time)} ${item.descendants} comments\n"
+        )
+    })
   }
 
   // Simple input and output is encoded as Monix Task so we can compose all the pieces
@@ -71,40 +77,35 @@ object FrontPageWithFetchCats {
     }.toOption
   }
 
-  def printTopItemCount[F[_] : ConcurrentEffect](topItems: HNItemIDList) = IO {
+  def printTopItemCount[F[_]: ConcurrentEffect](topItems: HNItemIDList) = IO {
     println(s"Got ${topItems.size} items")
   }
 
-  def getUserPage : IO[Option[HNItemID]] = for (
-    _ <- promptInput;
-    page <- getNumericInput
-  ) yield page
+  def getUserPage: IO[Option[HNItemID]] =
+    for (_    <- promptInput;
+         page <- getNumericInput) yield page
 
   val numItemsPerPage = 10
 
-  def showPagesLoop(topItems: HNItemIDList, cache: DataCache[IO]) : IO[DataCache[IO]] =
-
-  // Here we will show the page of items or exit if the user didn't enter a number
+  def showPagesLoop(topItems: HNItemIDList, cache: DataCache[IO]): IO[DataCache[IO]] =
+    // Here we will show the page of items or exit if the user didn't enter a number
     getUserPage.flatMap {
 
       case Some(page) =>
-
-        val what = for (
-          //_ <- IO.pure(println(s"fetch page $page"));
-          fetchResult <- fetchPage(page, numItemsPerPage, topItems, cache);
-          (cache, items) = fetchResult;
-          //_ = println(s"${env.rounds.size} fetch rounds");
-          _ <- printPageItems(page, numItemsPerPage, items);
-          newCache <- showPagesLoop(topItems, cache)
-        ) yield newCache
+        val what = for (//_ <- IO.pure(println(s"fetch page $page"));
+                        fetchResult    <- fetchPage(page, numItemsPerPage, topItems, cache);
+                        (cache, items) = fetchResult;
+                        //_ = println(s"${env.rounds.size} fetch rounds");
+                        _        <- printPageItems(page, numItemsPerPage, items);
+                        newCache <- showPagesLoop(topItems, cache)) yield newCache
 
         what
 
       case None =>
         IO.pure(cache)
     }
-
-  def main(args : Array[String]) : Unit = {
+0
+  def main(args: Array[String]): Unit = {
 
     val cache = InMemoryCache.from[IO, HNItemID, HNItem]()
 
