@@ -11,12 +11,14 @@ import scala.concurrent._
 import scala.io.StdIn._
 import scala.language.higherKinds
 import scala.util.Try
-import java.util.concurrent.Executors
-import java.util.concurrent.ThreadFactory
+import java.util.concurrent.{ExecutorService, Executors, ThreadFactory}
 
+// Implementation of basic hacker news API with 49 Degs Fetch and Cats Effect
 object FrontPageWithFetchCats {
 
-  val executor = Executors.newFixedThreadPool(4, new ThreadFactory() {
+  val concurrentThreads = 4
+
+  val executor: ExecutorService = Executors.newFixedThreadPool(concurrentThreads, new ThreadFactory() {
     override def newThread(r: Runnable): Thread = {
       val t = Executors.defaultThreadFactory.newThread(r)
       t.setDaemon(true)
@@ -51,7 +53,7 @@ object FrontPageWithFetchCats {
   }
 
   // Print a page of fetched items
-  def printPageItems(startPage: Int, numItemsPerPage: Int, items: List[HNItem]) = {
+  def printPageItems(startPage: Int, numItemsPerPage: Int, items: List[HNItem]) : IO[Unit] = {
     // helper to show the article rank
     def itemNum(n: Int) = (startPage * numItemsPerPage) + n + 1
 
@@ -92,7 +94,7 @@ object FrontPageWithFetchCats {
     getUserPage.flatMap {
 
       case Some(page) =>
-        val what = for (//_ <- IO.pure(println(s"fetch page $page"));
+        val what = for (_ <-IO(println(s"Fetch page $page"));
                         fetchResult    <- fetchPage(page, numItemsPerPage, topItems, cache);
                         (cache, items) = fetchResult;
                         //_ = println(s"${env.rounds.size} fetch rounds");
@@ -104,7 +106,7 @@ object FrontPageWithFetchCats {
       case None =>
         IO.pure(cache)
     }
-0
+
   def main(args: Array[String]): Unit = {
 
     val cache = InMemoryCache.from[IO, HNItemID, HNItem]()
