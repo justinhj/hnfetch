@@ -13,11 +13,10 @@ scalacOptions ++= Seq(
   "-Xverify",
   "-feature",
   "-Ypartial-unification",
-  //,"-Xfatal-warnings"
+  "-Xfatal-warnings",
   "-language:higherKinds",
   "-language:existentials",
   "-language:postfixOps",
-  //"-language:_",
   //,"-optimise"
   "-Xlog-implicit-conversions"
 )

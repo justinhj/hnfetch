@@ -3,7 +3,6 @@ package justinhj.hnfetch
 import cats.effect.{ConcurrentEffect, Sync}
 import scalaj.http.{ BaseHttp, HttpConstants, HttpOptions }
 import upickle.default._
-//import cats.effect._
 
 import scala.util.{ Failure, Success, Try }
 

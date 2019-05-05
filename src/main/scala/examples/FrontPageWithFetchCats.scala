@@ -94,14 +94,13 @@ object FrontPageWithFetchCats {
     getUserPage.flatMap {
 
       case Some(page) =>
-        val what = for (_ <-IO(println(s"Fetch page $page"));
+        for (_ <-IO(println(s"Fetch page $page"));
                         fetchResult    <- fetchPage(page, numItemsPerPage, topItems, cache);
                         (cache, items) = fetchResult;
                         //_ = println(s"${env.rounds.size} fetch rounds");
                         _        <- printPageItems(page, numItemsPerPage, items);
                         newCache <- showPagesLoop(topItems, cache)) yield newCache
 
-        what
 
       case None =>
         IO.pure(cache)
