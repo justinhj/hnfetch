@@ -12,11 +12,14 @@ scalacOptions ++= Seq(
   "-Xlint",
   "-Xverify",
   "-feature",
-  "-Ypartial-unification"
+  "-Ypartial-unification",
   //,"-Xfatal-warnings"
-  ,
-  "-language:_"
+  "-language:higherKinds",
+  "-language:existentials",
+  "-language:postfixOps",
+  //"-language:_",
   //,"-optimise"
+  "-Xlog-implicit-conversions"
 )
 
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
@@ -29,6 +32,7 @@ libraryDependencies ++= Seq(
   "org.scalaz"             %% "scalaz-core"             % ScalaZVersion,
   "org.scalaz"             %% "scalaz-zio"              % ZIOVersion,
   "org.scalaz"             %% "scalaz-zio-interop-cats" % ZIOVersion,
+  "org.scalaz"             %% "scalaz-zio-interop-scalaz7x" % ZIOVersion,
   "com.47deg"              %% "fetch"                   % fetchVersion,
   "org.scalaj"             %% "scalaj-http"             % "2.3.0",
   "com.lihaoyi"            %% "upickle"                 % "0.4.4",
@@ -65,3 +69,18 @@ sourceGenerators in Test += Def.task {
   IO.write(file, """object amm extends App { ammonite.Main().run() }""")
   Seq(file)
 }.taskValue
+
+resolvers += Resolver.sonatypeRepo("releases")
+
+addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.0")
+
+// if your project uses multiple Scala versions, use this for cross building
+addCompilerPlugin("org.typelevel" % "kind-projector" % "0.10.0" cross CrossVersion.binary)
+
+// if your project uses both 2.10 and polymorphic lambdas
+libraryDependencies ++= (scalaBinaryVersion.value match {
+  case "2.10" =>
+    compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full) :: Nil
+  case _ =>
+    Nil
+})

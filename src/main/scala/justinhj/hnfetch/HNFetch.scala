@@ -1,9 +1,9 @@
 package justinhj.hnfetch
 
-import cats.effect.ConcurrentEffect
+import cats.effect.{ConcurrentEffect, Sync}
 import scalaj.http.{ BaseHttp, HttpConstants, HttpOptions }
 import upickle.default._
-import cats.effect._
+//import cats.effect._
 
 import scala.util.{ Failure, Success, Try }
 
@@ -88,8 +88,15 @@ object HNFetch {
     hnRequestSync[HNItem](url)
   }
 
-  // getItem via a Monix Task
-  def getItem[F[_]: ConcurrentEffect](itemId: HNItemID): F[Either[String, HNItem]] = Sync[F].delay(getItemSync(itemId))
+  // Todo don't bury this error, rather than an Either it should be a Task or something
+  // similar compatible with Cats Effect
+  def getItem[F[_]: ConcurrentEffect](itemId: HNItemID): F[HNItem] =
+    Sync[F].delay{
+      getItemSync(itemId) match {
+        case Right(a) => a
+        case Left(err) => throw new Exception(err)
+      }
+    }
 
   type HNItemIDList = List[HNItemID]
 

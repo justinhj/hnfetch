@@ -75,7 +75,7 @@ object FrontPageWithFetchCats {
   def getNumericInput = IO {
     Try {
       val input = readLine()
-      input.toInt
+        input.toInt
     }.toOption
   }
 
