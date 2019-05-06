@@ -1,0 +1,12 @@
+WIP notes
+
+Need to improve error handling in the both ZIO and Cats effect versions
+
+Would be nice to add comment printing from zio hn fetch code
+
+Blog post to show the interop between scalaz, cats, about how much fun it was
+
+Refactor get multiple to allow multiple types of data sources if possible
+
+eg take a Task[List[?]] ???
+

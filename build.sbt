@@ -36,6 +36,7 @@ libraryDependencies ++= Seq(
   "org.scalaj"             %% "scalaj-http"             % "2.3.0",
   "com.lihaoyi"            %% "upickle"                 % "0.4.4",
   "org.ocpsoft.prettytime" % "prettytime"               % "3.2.7.Final",
+  "org.tpolecat"           %% "atto-core"               % "0.6.5",
   "org.scalatest"          %% "scalatest"               % "3.0.1" % "test"
 )
 
