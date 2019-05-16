@@ -1,14 +1,12 @@
 package examples
 
-import scalaz.zio._
-
 import scalaz.zio.blocking.Blocking
 import scalaz.zio.clock.Clock
 import scalaz.zio.console.Console
 import scalaz.zio.random.Random
 import scalaz.zio.system.System
-import scalaz.zio.internal.PlatformLive
-import scalaz.zio.DefaultRuntime 
+import scalaz.zio.internal.{Platform, PlatformLive}
+import scalaz.zio.DefaultRuntime
 import scalaz.zio._
 
 object Play1 {
@@ -16,16 +14,17 @@ object Play1 {
 
     // A runtime instance
     implicit val rts: Runtime[Env] = new DefaultRuntime {
-    override val Platform = PlatformLive.makeDefault().withReportFailure(_ => ())
+    override val Platform: Platform = PlatformLive.makeDefault().withReportFailure(_ => ())
     } 
 
-    // Our own monoid typeclass
+    // Our own monoid typeclass. Use a trait to describe the operations that make up a monoid...
     trait Monoid[A, F[_]] extends Serializable {
         def zero : F[A]
         def mappend(a : F[A]) : F[A]
     }
 
-    class ListMonoid[A](l : List[A]) extends Monoid[A, List] {
+    //
+    implicit final class ListMonoidOps[A](val l : List[A]) extends Monoid[A, List] {
         def zero : List[A] = List.empty[A]
 
         def mappend(app : List[A]) : List[A] = {
@@ -39,14 +38,7 @@ object Play1 {
          }
     }
 
-    // Implement for list
-    object ListMonoidOps {
-        implicit def listMonoid[A](l: List[A]) = new ListMonoid(l)
-    }
-
     def main(args: Array[String]) : Unit = {
-
-        import ListMonoidOps._
 
         def io(s: String) = UIO{println(s"Hello! $s")} 
 
@@ -56,8 +48,6 @@ object Play1 {
         val l3 = l1.mappend(l2)
 
         rts.unsafeRunSync(io(l3.toString))
-
-
 
     }
 }
