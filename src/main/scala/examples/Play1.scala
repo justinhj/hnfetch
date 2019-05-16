@@ -20,24 +20,22 @@ object Play1 {
     } 
 
     // Our own monoid typeclass
-    trait Monoid[F[_]] extends Serializable {
-        def zero[A] : F[A]
-        def mappend[A](a : F[A]) : F[A]
+    trait Monoid[A, F[_]] extends Serializable {
+        def zero : F[A]
+        def mappend(a : F[A]) : F[A]
     }
 
-    class ListMonoid[A](l : List[A]) extends Monoid[List] {
+    class ListMonoid[A](l : List[A]) extends Monoid[A, List] {
         def zero : List[A] = List.empty[A]
 
-        def mappend[A](a : List[A]) : List[A] = ???
-
-        def mappend2(app : List[A]) : List[A] = {
+        def mappend(app : List[A]) : List[A] = {
             def append(in : List[A], acc: List[A]) : List[A] = {
                 in match {
                     case head :: tl => append(tl, head +: acc)
                     case Nil => acc.reverse
                 }
             }
-            append(l, app)
+            append(app, l.reverse)
          }
     }
 
