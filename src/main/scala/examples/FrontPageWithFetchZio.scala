@@ -22,6 +22,67 @@ object FrontPageWithFetchZio {
     getMultipleItems(pageOfItems, cache)
   }
 
+
+  // Not a total function throws java.lang.ArithmeticException: / by zero
+  def tenDividedByN(n: Int) : Int = 10 / n
+
+  // Not a total function throws java.lang.NumberFormatException
+  def stringToInt(s: String) : Int = {
+    s.toInt
+  }
+
+
+  // Non-deterministic
+  case class NonDeterministicClass(var n : Int = 0) {
+    def whatDoIDo(i: Int) : Int = {
+      n = n + 1
+      i + n
+    }
+  }
+
+
+  import cats.effect.IO
+  import cats.effect._
+
+  import cats.instances.list._
+  import cats.syntax.all._
+
+  def putStrlLn(value: String) = IO(println(value))
+  val readLn = IO(scala.io.StdIn.readLine)
+
+  (for {
+    _ <- putStrlLn("What's your name?")
+    n <- readLn
+    _ <- putStrlLn(s"Hello, $n!")
+  } yield ()).unsafeRunSync
+
+
+
+  val c1 = NonDeterministicClass()
+  val f1 = c1.whatDoIDo(10) // 11
+  val f2 = c1.whatDoIDo(10) // 12
+
+  val x = 1
+
+  trait Monad[F[_]] {
+    def pure[A](a: A) : F[A]
+    def flatMap[A,B](fa: F[A], f : A => F[A]): F[B]
+  }
+
+  class Database {
+    def insert(a: Int, n: String) = ???
+  }
+
+  // Side effects
+  def addUserToDB(id: Int, name: String)(implicit db: Database) : Boolean = {
+    db.insert(id, name)
+  }
+
+  val u1 = addUserToDB(1, "Justin") // True
+  val u2 = addUserToDB(1, "Justin") // False (already exists)
+
+
+
   // Print a page of fetched items
   def printPageItems(startPage: Int, numItemsPerPage: Int, items: List[HNItem]) = {
     ZIO.foreach(items.zipWithIndex){
