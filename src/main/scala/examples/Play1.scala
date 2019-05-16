@@ -18,14 +18,16 @@ object Play1 {
     } 
 
     // Our own monoid typeclass. Use a trait to describe the operations that make up a monoid...
-    trait Monoid[A, F[_]] extends Serializable {
+    trait Monoid[A, F[_]] extends Any {
         def zero : F[A]
         def mappend(a : F[A]) : F[A]
     }
 
     //
-    implicit final class ListMonoidOps[A](val l : List[A]) extends Monoid[A, List] {
+    implicit class ListMonoidOps[A](val l : List[A]) extends AnyVal with Monoid[A, List] {
         def zero : List[A] = List.empty[A]
+
+        def |+|(app : List[A]) : List[A] = mappend(app)
 
         def mappend(app : List[A]) : List[A] = {
             def append(in : List[A], acc: List[A]) : List[A] = {
@@ -45,9 +47,11 @@ object Play1 {
         val l1 = List(1,2,3)
         val l2 = List(4,5,6)
 
-        val l3 = l1.mappend(l2)
+        val l3 = l1 mappend l2
 
-        rts.unsafeRunSync(io(l3.toString))
+        val l4 = l1 |+| l3
+
+        rts.unsafeRunSync(io(l3.toString)  *> io(l4.toString))
 
     }
 }

@@ -66,8 +66,8 @@ sourceGenerators in Test += Def.task {
 
 resolvers += Resolver.sonatypeRepo("releases")
 
-// if your project uses multiple Scala versions, use this for cross building
 addCompilerPlugin("org.typelevel" % "kind-projector" % "0.10.0" cross CrossVersion.binary)
+addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.0")
 
 // if your project uses both 2.10 and polymorphic lambdas
 libraryDependencies ++= (scalaBinaryVersion.value match {
