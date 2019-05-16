@@ -17,6 +17,7 @@ scalacOptions ++= Seq(
   "-language:higherKinds",
   "-language:existentials",
   "-language:postfixOps",
+  "-language:implicitConversions",
   //,"-optimise"
   "-Xlog-implicit-conversions"
 )
@@ -49,7 +50,7 @@ libraryDependencies += {
 
 sourceGenerators in Test += Def.task {
   val file = (sourceManaged in Test).value / "amm.scala"
-  IO.write(file, """object amm extends App { ammonite.Main.main(args) }""")
+  IO.write(file, """object amm extends App { ammonite.Main.main(args); }""")
   Seq(file)
 }.taskValue
 
@@ -63,15 +64,7 @@ sourceGenerators in Test += Def.task {
     .collect { case (a, f) if a.classifier == Some("sources") => f }
 }
 
-sourceGenerators in Test += Def.task {
-  val file = (sourceManaged in Test).value / "amm.scala"
-  IO.write(file, """object amm extends App { ammonite.Main().run() }""")
-  Seq(file)
-}.taskValue
-
 resolvers += Resolver.sonatypeRepo("releases")
-
-addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.0")
 
 // if your project uses multiple Scala versions, use this for cross building
 addCompilerPlugin("org.typelevel" % "kind-projector" % "0.10.0" cross CrossVersion.binary)
