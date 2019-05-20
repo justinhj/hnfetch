@@ -71,7 +71,10 @@ object Play1 {
     implicit val fooEqual: Equal[Foo] =
            Divide[Equal].divide2(Equal[String], Equal[Int]) {
              (foo: Foo) => (foo.s, foo.i)
-           }
+    }
+
+    val e1 = Equal[String]
+
 
     def main(args: Array[String]) : Unit = {
 
