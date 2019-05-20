@@ -49,10 +49,14 @@ trait Printable[A] {
     }
   
   
-  final case class Box[A](value: A)
-  
-  implicit val boxPrintableString = stringPrintable.contramap[Box[String]](b => b.value)
-  implicit val boxPrintableBool = booleanPrintable.contramap[Box[Boolean]](b => b.value)
+    final case class Box[A](value: A)
+
+    implicit def printableContravariant[A, B]()(implicit pa : Printable[A]) = new Printable[Box[A]] {
+        pa.contramap[Box[A]]((b : Box[A]) => b.value)
+    }
+
+  //implicit val boxPrintableString = stringPrintable.contramap[Box[String]](b => b.value)
+  //implicit val boxPrintableBool = booleanPrintable.contramap[Box[Boolean]](b => b.value)
 
 
     def main(args : Array[String]) : Unit = {
