@@ -68,6 +68,7 @@ resolvers += Resolver.sonatypeRepo("releases")
 
 addCompilerPlugin("org.typelevel" % "kind-projector" % "0.10.0" cross CrossVersion.binary)
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.0")
+addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.0.0")
 
 // if your project uses both 2.10 and polymorphic lambdas
 libraryDependencies ++= (scalaBinaryVersion.value match {
