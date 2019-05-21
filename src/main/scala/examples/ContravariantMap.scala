@@ -4,35 +4,22 @@ import scalaz._, Scalaz._
 
 object ContravariantMap {
 
-// Example of contravariant
-
+// Example of contravariant using Scalaz
   trait Printable[A] {
-
-    self =>
-
     def format(value: A): String
-
-    //def contramap[A,B](r: Printable[A])(f: B => A): Printable[B] = ???
-
-    def contramap[B](f: B => A): Printable[B] =
-      new Printable[B] {
-        def format(b: B): String = {
-          val a = f(b)
-          self.format(a)
-        }
-      }
   }
 
-  //implicit val printable[A,B](implicit p: Printable[A]) = p.contramap[B](b => b.value)
-
-//   implicit class printableContravariant[A,B](b : B)(implicit fa: Printable[a])
-//   new Contravariant[Printable] {
-//     def contramap[A, B](fa: Printable[A])(f: B => A) = {
-//         new Printable[B] {
-//             b => fa.format(f(b))
-//         }
-//     }
-//   }
+  // Contravariant printable
+  // This implements a contravariant for type Printable (providing the contramap)
+  // Contramap let's us map over an A when we have a B and a function to map B to A
+  object Printable {
+    implicit val contraPrintable = new Contravariant[Printable] {
+      def contramap[A, B](fa: Printable[A])(f: B => A): Printable[B] = new Printable[B] {
+        def format(b: B): String =
+          fa.format(f(b))
+      }
+    }
+  }
 
   def format[A](value: A)(implicit p: Printable[A]): String =
     p.format(value)
@@ -40,7 +27,7 @@ object ContravariantMap {
   implicit val stringPrintable =
     new Printable[String] {
       def format(value: String): String =
-        "\"" + value + "\""
+        s"String! >$value<"
     }
 
   implicit val booleanPrintable =
@@ -49,14 +36,20 @@ object ContravariantMap {
         if (value) "yes" else "no"
     }
 
+  implicit val intPrintable =
+    new Printable[Int] {
+      def format(value: Int): String =
+        s"Int! >$value<"
+    }
+
   final case class Box[A](value: A)
 
-  implicit val boxPrintableString = stringPrintable.contramap[Box[String]](b => b.value)
-  implicit val boxPrintableBool   = booleanPrintable.contramap[Box[Boolean]](b => b.value)
+  implicit def boxPrintable[A](implicit p: Printable[A]): Printable[Box[A]] =
+    p.contramap(_.value)
 
   def main(args: Array[String]): Unit = {
     println(format(Box("Hello, World!")))
     println(format(Box(true)))
+    println(format(Box(3117)))
   }
-
 }
