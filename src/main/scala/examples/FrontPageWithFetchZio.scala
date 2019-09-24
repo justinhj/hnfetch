@@ -3,10 +3,9 @@ package examples
 import fetch._
 import justinhj.hnfetch.HNDataSources
 import justinhj.hnfetch.HNFetch._
-import scalaz.zio._
-import scalaz.zio.console.{Console, getStrLn, putStrLn}
-import scalaz.zio.interop.catz._
-import scalaz.zio.interop.catz.implicits._
+import zio._
+import zio.console._
+import zio.interop.cats.implicits._
 
 object FrontPageWithFetchZio {
 

@@ -23,15 +23,15 @@ scalacOptions ++= Seq(
 
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 
-val fetchVersion  = "1.0.0"
+val fetchVersion  = "1.2.0"
 val ScalaZVersion = "7.3.0-M28"
-val ZIOVersion    = "1.0-RC4"
+val ZIOVersion    = "1.0.0-RC13"
+val catsVersion = "2.0.0"
 
 libraryDependencies ++= Seq(
-  "org.scalaz"             %% "scalaz-core"             % ScalaZVersion,
-  "org.scalaz"             %% "scalaz-zio"              % ZIOVersion,
-  "org.scalaz"             %% "scalaz-zio-interop-cats" % ZIOVersion,
-  "org.scalaz"             %% "scalaz-zio-interop-scalaz7x" % ZIOVersion,
+  "org.typelevel" %% "cats-core" % catsVersion,
+  "dev.zio" %% "zio" % ZIOVersion,
+  "dev.zio" %% "interop-cats" % "v2.0.0.0-RC3",
   "com.47deg"              %% "fetch"                   % fetchVersion,
   "org.scalaj"             %% "scalaj-http"             % "2.3.0",
   "com.lihaoyi"            %% "upickle"                 % "0.4.4",
