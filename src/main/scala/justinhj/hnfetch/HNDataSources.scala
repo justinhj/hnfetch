@@ -1,6 +1,6 @@
 package justinhj.hnfetch
 
-import cats.effect.{ConcurrentEffect, ContextShift, Timer}
+import cats.effect.{ConcurrentEffect, Timer}
 import cats.instances.list._
 import cats.syntax.all._
 import fetch.{Data, DataCache, DataSource, Fetch}
@@ -46,7 +46,7 @@ object HNDataSources {
   def getItem[F[_]: ConcurrentEffect](id: HNItemID): Fetch[F, HNItem] = Fetch(id, HNItemSource.source)
 
   def getMultipleItems[F[_] : ConcurrentEffect](ids : List[HNItemID], cache: DataCache[F])
-                                               (implicit cs: ContextShift[F], timer: Timer[F]) = {
+                                               (implicit timer: Timer[F]) = {
     val fetchItems: Fetch[F, List[HNItem]] = ids.traverse(getItem[F])
 
     Fetch.runCache[F](fetchItems, cache)

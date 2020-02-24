@@ -2,8 +2,7 @@ package justinhj.hnfetch
 
 import cats.effect.{ConcurrentEffect, Sync}
 import scalaj.http.{ BaseHttp, HttpConstants, HttpOptions }
-import upickle.default._
-
+import upickle.default.{ReadWriter, macroRW, read}
 import scala.util.{ Failure, Success, Try }
 
 // Get Hacker News items
@@ -33,6 +32,9 @@ object HNFetch {
 
   val HNMissingItemID: HNItemID = -1
   val HNMissingUserID: HNUserID = ""
+
+  implicit val rwUser: ReadWriter[HNUser] = macroRW
+  implicit val rwItem: ReadWriter[HNItem] = macroRW
 
   case class HNUser(
     id: HNUserID, // The user's unique username. Case-sensitive. Required.
@@ -119,7 +121,7 @@ object HNFetch {
 
   // Executes the API request. We need a upickle.Reader for the type T so it can be parsed
   // on receipt
-  def hnRequestSync[T](url: String)(implicit r: Reader[T]): Either[String, T] = {
+  def hnRequestSync[T](url: String)(implicit r: ReadWriter[T]): Either[String, T] = {
 
     println(s"url get on thread ${Thread.currentThread().getName}")
 
